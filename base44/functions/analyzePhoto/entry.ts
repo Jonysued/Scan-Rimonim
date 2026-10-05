@@ -44,14 +44,14 @@ export default async function (req) {
       required: ['fruits']
     };
 
-    const prompt = `Detectá cada granada (variedad ${variedad_name || 'Wonderful'}) visible en la imagen.
-Para cada granada devolvé:
+    const prompt = `Detectá la granada principal (variedad ${variedad_name || 'Wonderful'}) visible en la imagen: la que está en primer plano y mejor enfocada, centro de atención de la foto.
+Para esa granada devolvé:
 - box_2d: caja delimitadora ajustada al borde exterior de la cáscara, formato [ymin, xmin, ymax, xmax] con coordenadas normalizadas 0-1000 (0,0 = esquina superior izquierda). No incluyas hojas, ramas ni la corona más allá del contorno del fruto.
 - diameter_mm: diámetro aproximado en mm (Wonderful madura: 60-100mm). Si hay un objeto de referencia (pelota de tenis ≈ 67mm), usalo para calibrar.
 - color_category: verde, rosado, rojo o rojo_oscuro según el color dominante.
 - color_score: 0-100 según intensidad de rojo.
 - defects: sunburn, cracking o russet con severity (leve/media/grave) y confidence (0-1). Lista vacía si no hay.
-Ignorá objetos que no sean granadas. Si no hay granadas, devolvé fruits: [].`;
+Ignorá objetos que no sean granadas y toda granada que no sea la principal. Si en la imagen hay más de una granada, evaluá únicamente la principal: la que está en primer plano y mejor enfocada (el centro de atención de la foto). No incluyas granadas de fondo, borrosas, parciales o fuera de foco. El array fruits debe contener como máximo 1 elemento. Si no hay granadas, devolvé fruits: [].`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
