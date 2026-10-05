@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import SelectorContexto from "@/components/sesion/SelectorContexto";
 import FotoCaptura from "@/components/sesion/FotoCaptura";
 import { Camera, Loader2 } from "lucide-react";
+import normalizeImage from "@/lib/normalizeImage";
 
 export default function NuevaSesion() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function NuevaSesion() {
 
   const handleFiles = async (fileList) => {
     const sid = await ensureSession();
-    const files = Array.from(fileList);
+    const files = await Promise.all(Array.from(fileList).map((f) => normalizeImage(f)));
     const newFotos = files.map((file) => ({
       tempId: Math.random().toString(36).slice(2),
       previewUrl: URL.createObjectURL(file),
