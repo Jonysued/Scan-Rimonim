@@ -1,0 +1,13 @@
+{
+  "name": "Variedad",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Ej: Wonderful, Acco, Smith"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

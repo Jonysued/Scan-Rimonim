@@ -1,0 +1,23 @@
+{
+  "name": "Finca",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la finca"
+    },
+    "region": {
+      "type": "string",
+      "description": "Regi\u00f3n / provincia"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "Bloque",
+  "type": "object",
+  "properties": {
+    "finca_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "variedad_id": {
+      "type": "string"
+    },
+    "area_ha": {
+      "type": "number"
+    },
+    "tree_count": {
+      "type": "number"
+    },
+    "plant_year": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "finca_id",
+    "name"
+  ]
+}

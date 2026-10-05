@@ -1,0 +1,91 @@
+{
+  "name": "Foto",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "storage_uri": {
+      "type": "string",
+      "description": "file_uri privado"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "procesando",
+        "listo",
+        "error"
+      ],
+      "default": "procesando"
+    },
+    "fruit_count_estimate": {
+      "type": "number"
+    },
+    "avg_diameter_mm": {
+      "type": "number"
+    },
+    "fruits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "diameter_mm": {
+            "type": "number"
+          },
+          "color_category": {
+            "type": "string",
+            "enum": [
+              "verde",
+              "rosado",
+              "rojo",
+              "rojo_oscuro"
+            ]
+          },
+          "color_score": {
+            "type": "number"
+          },
+          "defects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "sunburn",
+                    "cracking",
+                    "russet"
+                  ]
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "leve",
+                    "media",
+                    "grave"
+                  ]
+                },
+                "confidence": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "session_id"
+  ]
+}

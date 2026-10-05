@@ -6,7 +6,12 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
-// Add page imports here
+import Dashboard from './pages/Dashboard';
+import NuevaSesion from './pages/NuevaSesion';
+import SesionResultado from './pages/SesionResultado';
+import BloqueDetalle from './pages/BloqueDetalle';
+import Comparar from './pages/Comparar';
+import Admin from './pages/Admin';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +39,12 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/nueva-sesion" element={<NuevaSesion />} />
+      <Route path="/sesion/:id" element={<SesionResultado />} />
+      <Route path="/bloque/:id" element={<BloqueDetalle />} />
+      <Route path="/comparar" element={<Comparar />} />
+      <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
