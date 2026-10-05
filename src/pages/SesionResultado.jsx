@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import AppShell from "@/components/layout/AppShell";
 import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
-import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle } from "lucide-react";
+import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
+import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
+import moment from "moment";
 
 export default function SesionResultado() {
   const { id } = useParams();
