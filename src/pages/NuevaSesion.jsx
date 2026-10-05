@@ -84,7 +84,7 @@ export default function NuevaSesion() {
         setFotos((prev) =>
           prev.map((f) =>
             f.tempId === nf.tempId
-              ? { ...f, status: "listo", fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length }
+              ? { ...f, status: "listo", fruits, fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length }
               : f
           )
         );
