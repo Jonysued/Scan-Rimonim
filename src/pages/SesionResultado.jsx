@@ -23,7 +23,18 @@ export default function SesionResultado() {
         base44.entities.Foto.filter({ session_id: id }),
       ]);
       setBloque(b);
-      setFotos(f);
+      const withUrls = await Promise.all(
+        f.map(async (foto) => {
+          if (!foto.storage_uri) return foto;
+          try {
+            const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: foto.storage_uri });
+            return { ...foto, signed_url };
+          } catch {
+            return foto;
+          }
+        })
+      );
+      setFotos(withUrls);
       setLoading(false);
     })();
   }, [id]);
@@ -85,6 +96,32 @@ export default function SesionResultado() {
                 <div key={type} className="flex items-center justify-between py-1.5 border-b border-[#f4e9e5] last:border-0">
                   <span className="text-sm text-[#5c4448]">{labels[type] || type}</span>
                   <span className="text-sm font-medium text-[#2a1a1d]">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5">
+          <p className="text-sm font-semibold text-[#2a1a1d] mb-4 flex items-center gap-1.5">
+            <Camera className="w-4 h-4 text-[#7a1f33]" /> Fotos del muestreo ({fotos.length})
+          </p>
+          {fotos.length === 0 ? (
+            <p className="text-sm text-[#b79a9d] py-6 text-center">Sin fotos registradas.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {fotos.map((f) => (
+                <div key={f.id}>
+                  {f.signed_url ? (
+                    <AnnotatedPhoto src={f.signed_url} fruits={f.fruits || []} />
+                  ) : (
+                    <div className="aspect-square rounded-xl bg-[#f4e9e5] flex items-center justify-center text-xs text-[#b79a9d]">
+                      No disponible
+                    </div>
+                  )}
+                  <p className="text-[11px] text-[#9b7f82] mt-1.5">
+                    {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.fruit_count_estimate || 0} frutos
+                  </p>
                 </div>
               ))}
             </div>
