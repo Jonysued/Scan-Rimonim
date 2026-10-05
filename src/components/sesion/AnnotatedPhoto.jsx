@@ -19,13 +19,14 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
           {fruits.map((f, i) => {
             const cx = (f.center_x_pct / 100) * dims.w;
             const cy = (f.center_y_pct / 100) * dims.h;
-            const r = (f.radius_pct / 100) * dims.w;
+            const rx = (f.radius_pct / 100) * dims.w;
+            const ry = f.radius_y_pct != null ? (f.radius_y_pct / 100) * dims.h : rx;
             return (
               <g key={i}>
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke="#4ade80" strokeWidth={Math.max(dims.w / 300, 2)} />
+                <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#4ade80" strokeWidth={Math.max(dims.w / 300, 2)} />
                 <text
                   x={cx}
-                  y={cy - r - 4}
+                  y={cy - ry - 4}
                   fill="#166534"
                   fontSize={Math.max(dims.w / 25, 14)}
                   fontWeight="600"

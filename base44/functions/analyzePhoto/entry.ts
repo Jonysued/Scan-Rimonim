@@ -12,18 +12,19 @@ export default async function (req) {
     const schema = {
       type: 'object',
       properties: {
-        fruit_count_estimate: { type: 'number' },
         fruits: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
+              box_2d: {
+                type: 'array',
+                items: { type: 'number' },
+                description: '[ymin, xmin, ymax, xmax] normalizado 0-1000'
+              },
               diameter_mm: { type: 'number' },
               color_category: { type: 'string', enum: ['verde', 'rosado', 'rojo', 'rojo_oscuro'] },
               color_score: { type: 'number' },
-              center_x_pct: { type: 'number', description: 'Centro X 0-100 % del ancho' },
-              center_y_pct: { type: 'number', description: 'Centro Y 0-100 % del alto' },
-              radius_pct: { type: 'number', description: 'Radio 0-100 % del ancho' },
               defects: {
                 type: 'array',
                 items: {
@@ -36,31 +37,44 @@ export default async function (req) {
                 }
               }
             },
-            required: ['diameter_mm', 'color_category', 'center_x_pct', 'center_y_pct', 'radius_pct']
+            required: ['box_2d', 'diameter_mm', 'color_category']
           }
         }
       },
-      required: ['fruit_count_estimate', 'fruits']
+      required: ['fruits']
     };
 
-    const prompt = `Sos un sistema de visión por computadora especializado en estimar calidad de granadas (variedad ${variedad_name || 'Wonderful'}) a partir de una foto tomada en el árbol.
-Analiza la imagen adjunta y para cada fruta visible detecta:
-- center_x_pct y center_y_pct: posición del centro de la fruta en la imagen, como porcentaje del ancho y del alto (0-100, esquina superior izquierda = 0,0).
-- radius_pct: radio de la fruta como porcentaje del ancho de la imagen (0-100). El círculo con centro (center_x_pct, center_y_pct) y este radio debe envolver la fruta.
-- diameter_mm: diámetro aproximado en milímetros (granadas Wonderful maduras suelen medir entre 60 y 100mm). Si hay un objeto de referencia conocido en la foto (pelota de tenis ≈ 67mm), usalo para calibrar la escala.
-- color_category: una de verde, rosado, rojo, rojo_oscuro según el color dominante de la cáscara.
+    const prompt = `Detectá cada granada (variedad ${variedad_name || 'Wonderful'}) visible en la imagen.
+Para cada granada devolvé:
+- box_2d: caja delimitadora ajustada al borde exterior de la cáscara, formato [ymin, xmin, ymax, xmax] con coordenadas normalizadas 0-1000 (0,0 = esquina superior izquierda). No incluyas hojas, ramas ni la corona más allá del contorno del fruto.
+- diameter_mm: diámetro aproximado en mm (Wonderful madura: 60-100mm). Si hay un objeto de referencia (pelota de tenis ≈ 67mm), usalo para calibrar.
+- color_category: verde, rosado, rojo o rojo_oscuro según el color dominante.
 - color_score: 0-100 según intensidad de rojo.
-- defects: lista de defectos detectados entre sunburn (golpe de sol), cracking (rajado), russet (rugosidad), cada uno con severity (leve/media/grave) y confidence (0-1). Si no hay defectos visibles, lista vacía.
-Si no se detectan frutas u objetos claramente, devuelve fruit_count_estimate: 0 y fruits: [].
-Sé realista: una foto de campo normalmente muestra entre 1 y 8 frutas. Devolvé SIEMPRE center_x_pct, center_y_pct y radius_pct para cada fruta detectada.`;
+- defects: sunburn, cracking o russet con severity (leve/media/grave) y confidence (0-1). Lista vacía si no hay.
+Ignorá objetos que no sean granadas. Si no hay granadas, devolvé fruits: [].`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       file_urls: [signed_url],
-      response_json_schema: schema
+      response_json_schema: schema,
+      model: 'gemini_3_8_flash'
     });
 
-    return Response.json(result);
+    const fruits = (result.fruits || [])
+      .filter((f) => Array.isArray(f.box_2d) && f.box_2d.length === 4)
+      .map(({ box_2d, ...rest }) => {
+        const [ymin, xmin, ymax, xmax] = box_2d;
+        return {
+          ...rest,
+          defects: rest.defects || [],
+          center_x_pct: (xmin + xmax) / 20,
+          center_y_pct: (ymin + ymax) / 20,
+          radius_pct: (xmax - xmin) / 20,
+          radius_y_pct: (ymax - ymin) / 20
+        };
+      });
+
+    return Response.json({ fruit_count_estimate: fruits.length, fruits });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -64,7 +64,11 @@
           },
           "radius_pct": {
             "type": "number",
-            "description": "Radio de la fruta, 0-100 % del ancho de la imagen"
+            "description": "Radio horizontal, 0-100 % del ancho de la imagen"
+          },
+          "radius_y_pct": {
+            "type": "number",
+            "description": "Radio vertical, 0-100 % del alto de la imagen"
           },
           "defects": {
             "type": "array",
