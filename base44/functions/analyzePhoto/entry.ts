@@ -46,8 +46,8 @@ export default async function (req) {
 
     const prompt = `Detectá la granada principal (variedad ${variedad_name || 'Wonderful'}) visible en la imagen: la que está en primer plano y mejor enfocada, centro de atención de la foto.
 Para esa granada devolvé:
-- box_2d: caja delimitadora ajustada al borde exterior de la cáscara, formato [ymin, xmin, ymax, xmax] con coordenadas normalizadas 0-1000 (0,0 = esquina superior izquierda). No incluyas hojas, ramas ni la corona más allá del contorno del fruto.
-- diameter_mm: diámetro aproximado en mm (Wonderful madura: 60-100mm). Si hay un objeto de referencia (pelota de tenis ≈ 67mm), usalo para calibrar.
+- box_2d: caja delimitadora ajustada al borde exterior de la cáscara, formato [ymin, xmin, ymax, xmax] con coordenadas normalizadas 0-1000 (0,0 = esquina superior izquierda). IMPORTANTE: excluí la corona (cáliz, los sépalos que sobresalen en la parte superior) de la caja; la caja debe abarcar únicamente el cuerpo redondo de la fruta, de mejilla a mejilla. No incluyas hojas ni ramas.
+- diameter_mm: diámetro ecuatorial en mm del cuerpo de la fruta, SIN contar la corona/cáliz (Wonderful madura: 60-100mm). Si hay un objeto de referencia (pelota de tenis ≈ 67mm), usalo para calibrar.
 - color_category: verde, rosado, rojo o rojo_oscuro según el color dominante.
 - color_score: 0-100 según intensidad de rojo.
 - defects: sunburn, cracking o russet con severity (leve/media/grave) y confidence (0-1). Lista vacía si no hay.
