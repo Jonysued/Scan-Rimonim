@@ -6,6 +6,7 @@ export default function GuidedCamera({onCapture,onClose}){
   const callbacks=useRef({onCapture,onClose});
   const latestGuide=useRef({status:'search'});
   const active=useRef(null);
+  const phoneCamera=useRef(null);
   const [frame,setFrame]=useState({width:0,height:0});
   const [error,setError]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false);
   const [guide,setGuide]=useState({status:'search',message:'Abriendo cámara…'});
@@ -13,7 +14,8 @@ export default function GuidedCamera({onCapture,onClose}){
 
   async function take(automatic=false){
     const session=active.current;
-    if(capturing.current||!session?.live||!video.current?.videoWidth)return;
+    if(capturing.current||!session?.live)return;
+    if(!video.current?.videoWidth){phoneCamera.current?.click();return;}
     capturing.current=true;setBusy(true);
     try{
       const canvas=document.createElement('canvas');
@@ -52,7 +54,9 @@ export default function GuidedCamera({onCapture,onClose}){
           canvas.width=Math.max(1,Math.round(video.current.videoWidth*scale));
           canvas.height=Math.max(1,Math.round(video.current.videoHeight*scale));
           ctx.drawImage(video.current,0,0,canvas.width,canvas.height);
-          const next=framing(ctx.getImageData(0,0,canvas.width,canvas.height));
+          let next;
+          try{next=framing(ctx.getImageData(0,0,canvas.width,canvas.height));}
+          catch{next={status:'search',message:'Guía no disponible. Podés tomar la foto.'};}
           latestGuide.current=next;setGuide(next);
 
         },250);
@@ -67,14 +71,20 @@ export default function GuidedCamera({onCapture,onClose}){
     <div className="relative flex-1 min-h-0 flex items-center justify-center">
       <video ref={video} muted playsInline className="w-full h-full object-contain"/>
       <div className="pointer-events-none absolute flex items-center justify-center" style={{width:frame.width,height:frame.height}}>
-        <div style={{width:Math.min(frame.width,frame.height)*.52,aspectRatio:'1'}} className={`rounded-full border-2 ${guide.status==='ready'?'border-green-400':'border-white/70'}`}/>
+        <div style={{width:Math.min(frame.width,frame.height)*.52,aspectRatio:'1'}} className="rounded-full border-2 border-white/70"/>
         {guide.box&&<div className={`absolute border-2 rounded-lg ${guide.status==='ready'?'border-green-400':'border-amber-400'}`} style={{left:guide.box.x*100+'%',top:guide.box.y*100+'%',width:guide.box.width*100+'%',height:guide.box.height*100+'%'}}/>}
       </div>
     </div>
     <div className="p-5 text-center space-y-3">
-      <p aria-live="polite">{error||(busy?'Guardando foto…':guide.status==='search'&&ready?'No detecto el contorno. Separá la fruta del fondo y buscá buena luz.':guide.message)}</p>
-      <p className="text-sm text-gray-300">Colocá la fruta completa dentro del círculo. El recuadro marca lo que detectamos.</p>
-      <button disabled={busy||!ready} onClick={()=>take(false)} className="rounded-full bg-white text-black px-8 py-3 disabled:opacity-40">{busy?'Capturando…':'Tomar foto'}</button>
+      <p aria-live="polite">{error||(busy?'Guardando foto…':guide.status==='search'&&ready?'Sin contorno detectado. Podés tomar la foto igual.':guide.message)}</p>
+      <p className="text-sm text-gray-300">Mostrá una fruta completa y enfocada. No necesitás esperar que el recuadro se ponga verde.</p>
+      <button disabled={busy} onClick={()=>take(false)} className="rounded-full bg-white text-black px-8 py-3 disabled:opacity-40">{busy?'Capturando…':'Tomar foto'}</button>
+      <button disabled={busy} onClick={()=>phoneCamera.current?.click()} className="block mx-auto text-sm underline">Usar cámara del teléfono</button>
+      <input ref={phoneCamera} type="file" accept="image/*" capture="environment" className="hidden" onChange={e=>{
+        const file=e.target.files?.[0];if(!file)return;
+        callbacks.current.onCapture(file,{method:'phone-camera',distanceM:null,guidance:'manual',automatic:false});
+        callbacks.current.onClose();
+      }}/>
       <p className="text-xs text-gray-400">Guía visual de encuadre; no mide centímetros.</p>
     </div>
   </div>;
