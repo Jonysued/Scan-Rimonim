@@ -9,6 +9,7 @@ import FotoCaptura from "@/components/sesion/FotoCaptura";
 import { Camera, Loader2 } from "lucide-react";
 import normalizeImage from "@/lib/normalizeImage";
 import { useAuth } from "@/lib/AuthContext";
+import { savePhoto } from "@/lib/capture/savePhoto";
 
 export default function NuevaSesion() {
   const navigate = useNavigate();
@@ -67,32 +68,10 @@ export default function NuevaSesion() {
 
   const processPhoto = async (nf, sid) => {
       try {
-        const file_uri = nf.storage_uri || (await appClient.integrations.Core.UploadPrivateFile({ file: nf.file })).file_uri;
-        nf.storage_uri = file_uri;
-        setFotos(prev => prev.map(f => f.tempId === nf.tempId ? {...f, storage_uri:file_uri} : f));
-        const analysis = await appClient.functions.invoke("analyzePhoto", {
-          storage_uri: file_uri,
-          variedad_name: variedadName,
+        const result = await savePhoto(appClient, nf, sid, variedadName, saved => {
+          setFotos(prev => prev.map(f => f.tempId === nf.tempId ? {...f, ...saved} : f));
         });
-        const fruits = analysis.data.fruits || [];
-        await appClient.entities.Foto.create({
-          session_id: sid,
-          captured_at: new Date().toISOString(),
-          storage_uri: file_uri,
-          capture_metadata: nf.metadata,
-          measurement_status: "unmeasured",
-          status: "listo",
-          fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length,
-          avg_diameter_mm: null,
-          fruits,
-        });
-        setFotos((prev) =>
-          prev.map((f) =>
-            f.tempId === nf.tempId
-              ? { ...f, status: "listo", fruits, fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length }
-              : f
-          )
-        );
+        setFotos(prev => prev.map(f => f.tempId === nf.tempId ? {...f, ...result} : f));
       } catch (err) {
         setError(err.message);
         setFotos((prev) => prev.map((f) => (f.tempId === nf.tempId ? { ...f, status: "error" } : f)));
@@ -138,6 +117,7 @@ export default function NuevaSesion() {
 
   const frutosTotal = fotos.reduce((acc, f) => acc + (f.fruit_count_estimate || 0), 0);
   const fotosListas = fotos.filter((f) => f.status === "listo").length;
+  const fotosGuardadas = fotos.filter(f => f.status === "listo" || f.status === "guardado").length;
   const procesando = fotos.some((f) => f.status === "procesando");
 
   const finalizar = async () => {
@@ -145,6 +125,7 @@ export default function NuevaSesion() {
     try {
     const fotosDb = await appClient.entities.Foto.filter({ session_id: sessionId });
     const allFruits = fotosDb.flatMap((f) => f.fruits || []);
+    const pending = fotosDb.some(f => f.status !== "listo");
     const fruitCount = allFruits.length;
     const measured = allFruits.filter(f => Number.isFinite(f.diameter_mm) && f.diameter_mm > 0);
     const avgDiam = measured.length ? measured.reduce((a,f)=>a+f.diameter_mm,0)/measured.length : null;
@@ -156,14 +137,14 @@ export default function NuevaSesion() {
 
     await appClient.entities.SesionMuestreo.update(sessionId, {
       ended_at: new Date().toISOString(),
-      status: "listo",
+      status: pending ? "borrador" : "listo",
       photo_count: fotosDb.length,
       fruit_count: fruitCount,
       avg_diameter_mm: avgDiam,
-      red_pct: redPct,
-      cracking_pct: crackingPct,
-      sunburn_pct: sunburnPct,
-      russet_pct: russetPct,
+      red_pct: pending ? null : redPct,
+      cracking_pct: pending ? null : crackingPct,
+      sunburn_pct: pending ? null : sunburnPct,
+      russet_pct: pending ? null : russetPct,
     });
     navigate(`/sesion/${sessionId}`);
     } catch(e) {setError(e.message);} finally {setFinalizing(false);}
@@ -196,7 +177,7 @@ export default function NuevaSesion() {
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mt-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-[#2a1a1d]">
-                Fotos · {fotosListas}/{fotos.length} · ≈{frutosTotal} frutos
+                Fotos guardadas · {fotosGuardadas}/{fotos.length} · {fotosListas} analizadas · ≈{frutosTotal} frutos
               </p>
               <button
                 disabled={procesando}
@@ -225,19 +206,19 @@ export default function NuevaSesion() {
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {fotos.map((f) => (
-                  <div key={f.tempId}><FotoCaptura foto={f} />{f.status === "error" && <div className="flex flex-wrap gap-2 mt-2 text-xs"><button disabled={procesando} onClick={()=>retryPhoto(f)} className="underline">Reintentar</button><button disabled={procesando} onClick={()=>{URL.revokeObjectURL(f.previewUrl);setFotos(prev=>prev.filter(p=>p.tempId!==f.tempId));}} className="underline">Descartar</button></div>}{f.metadata?.distanceM && <p className="text-xs mt-1">Distancia al centro: {Math.round(f.metadata.distanceM*100)} cm · experimental</p>}</div>
+                  <div key={f.tempId}><FotoCaptura foto={f} />{f.status === "guardado" && <p className="text-xs text-amber-800 mt-2">Foto guardada. Análisis pendiente: {f.analysisError}</p>}{(f.status === "error" || f.status === "guardado") && <div className="flex flex-wrap gap-2 mt-2 text-xs"><button disabled={procesando} onClick={()=>retryPhoto(f)} className="underline">{f.status === "guardado" ? "Reintentar análisis" : "Reintentar guardado"}</button>{!f.photoId && <button disabled={procesando} onClick={()=>{URL.revokeObjectURL(f.previewUrl);setFotos(prev=>prev.filter(p=>p.tempId!==f.tempId));}} className="underline">Descartar</button>}</div>}{f.metadata?.distanceM && <p className="text-xs mt-1">Distancia al centro: {Math.round(f.metadata.distanceM*100)} cm · experimental</p>}</div>
                 ))}
               </div>
             )}
 
             {fotos.length > 0 && (
               <button
-                disabled={procesando || finalizing || !fotosListas || fotos.some(f=>f.status==="error")}
+                disabled={procesando || finalizing || !fotosGuardadas || fotos.some(f=>f.status==="error")}
                 onClick={finalizar}
                 className="mt-6 w-full flex items-center justify-center gap-2 bg-[#2a1a1d] text-white text-sm font-medium py-3 rounded-xl disabled:opacity-50 hover:bg-black transition-colors"
               >
                 {finalizing || procesando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {procesando ? "Procesando fotos..." : finalizing ? "Finalizando..." : "Finalizar muestreo"}
+                {procesando ? "Guardando y analizando fotos..." : finalizing ? "Guardando muestreo..." : fotosGuardadas > fotosListas ? "Guardar muestreo · análisis pendiente" : "Finalizar muestreo"}
               </button>
             )}
           </div>

@@ -42,6 +42,7 @@ export default function SesionResultado() {
   if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
 
   const allFruits = fotos.flatMap((f) => f.fruits || []);
+  const pending = fotos.some(f => f.status !== "listo");
   const defectCounts = {};
   allFruits.forEach((f) => (f.defects || []).forEach((d) => {
     defectCounts[d.type] = (defectCounts[d.type] || 0) + 1;
@@ -57,8 +58,9 @@ export default function SesionResultado() {
         </Link>
 
         <div className="bg-white rounded-2xl border border-[#eee1dc] p-6 mb-5">
-          <p className="text-sm text-[#9b7f82] mb-1">Resultado del muestreo</p>
-          <p className="text-4xl font-semibold tracking-tight text-[#2a1a1d]">{sesion.fruit_count || 0} frutos</p>
+          <p className="text-sm text-[#9b7f82] mb-1">{pending ? "Muestreo guardado · análisis pendiente" : "Resultado del muestreo"}</p>
+          <p className="text-4xl font-semibold tracking-tight text-[#2a1a1d]">{pending ? `${fotos.length} fotos guardadas` : `${sesion.fruit_count || 0} frutos`}</p>
+          {pending && <p className="text-sm text-amber-800 mt-3">Las fotos están guardadas. El análisis todavía no está completo; no hay resultados validados de calibre, color o defectos.</p>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -69,12 +71,12 @@ export default function SesionResultado() {
           </div>
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <AlertTriangle className="w-4 h-4 text-[#b4542a] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{(sesion.cracking_pct || 0).toFixed(0)}%</p>
+            <p className="text-lg font-semibold text-[#2a1a1d]">{pending ? "—" : `${(sesion.cracking_pct || 0).toFixed(0)}%`}</p>
             <p className="text-[11px] text-[#9b7f82]">Rajado</p>
           </div>
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <Droplets className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{(sesion.red_pct || 0).toFixed(0)}%</p>
+            <p className="text-lg font-semibold text-[#2a1a1d]">{pending ? "—" : `${(sesion.red_pct || 0).toFixed(0)}%`}</p>
             <p className="text-[11px] text-[#9b7f82]">Rojo</p>
           </div>
         </div>
@@ -89,7 +91,7 @@ export default function SesionResultado() {
             <Apple className="w-4 h-4 text-[#7a1f33]" /> Top defectos
           </p>
           {topDefects.length === 0 ? (
-            <p className="text-sm text-[#b79a9d]">Sin defectos detectados.</p>
+            <p className="text-sm text-[#b79a9d]">{pending ? "Análisis de defectos pendiente." : "Sin defectos detectados."}</p>
           ) : (
             <div className="space-y-2">
               {topDefects.map(([type, count]) => (
@@ -120,7 +122,7 @@ export default function SesionResultado() {
                     </div>
                   )}
                   <p className="text-[11px] text-[#9b7f82] mt-1.5">
-                    {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.fruit_count_estimate || 0} frutos
+                    {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.status !== "listo" ? "Guardada · análisis pendiente" : `${f.fruit_count_estimate || 0} frutos`}
                   </p>
                 </div>
               ))}
