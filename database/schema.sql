@@ -68,3 +68,11 @@ create index on public.fotos("session_id");
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('photos','photos',false,15000000,array['image/jpeg']);
 create policy upload_photos on storage.objects for insert to authenticated with check (bucket_id='photos' and (storage.foldername(name))[1]=(select auth.uid())::text and private.has_role(array['admin','muestreador']));
 create policy read_photos on storage.objects for select to authenticated using (bucket_id='photos' and private.has_role(array['admin','muestreador','lector']));
+-- Projects with automatic API exposure disabled also require explicit server grants.
+grant select,insert,update,delete on all tables in schema public to service_role;
+-- Supabase may create this event-trigger function when automatic RLS is enabled.
+do $$ begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke all on function public.rls_auto_enable() from public,anon,authenticated;
+  end if;
+end $$;
