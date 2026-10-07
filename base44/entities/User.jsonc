@@ -2,11 +2,13 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
+      "description": "Perfil del usuario: admin (administrador), muestreador (puede tomar muestras), lector (solo lectura)",
       "enum": [
         "admin",
-        "user"
-      ]
+        "muestreador",
+        "lector"
+      ],
+      "default": "lector"
     }
   },
   "required": [

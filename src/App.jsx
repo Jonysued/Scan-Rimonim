@@ -12,6 +12,7 @@ import SesionResultado from './pages/SesionResultado';
 import BloqueDetalle from './pages/BloqueDetalle';
 import Comparar from './pages/Comparar';
 import Admin from './pages/Admin';
+import RoleRoute from './components/RoleRoute';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -40,11 +41,15 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
-      <Route path="/nueva-sesion" element={<NuevaSesion />} />
+      <Route element={<RoleRoute roles={["admin", "muestreador"]} />}>
+        <Route path="/nueva-sesion" element={<NuevaSesion />} />
+      </Route>
       <Route path="/sesion/:id" element={<SesionResultado />} />
       <Route path="/bloque/:id" element={<BloqueDetalle />} />
       <Route path="/comparar" element={<Comparar />} />
-      <Route path="/admin" element={<Admin />} />
+      <Route element={<RoleRoute roles={["admin"]} />}>
+        <Route path="/admin" element={<Admin />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

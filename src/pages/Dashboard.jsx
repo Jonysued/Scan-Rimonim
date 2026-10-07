@@ -6,8 +6,11 @@ import AlertasPanel from "@/components/dashboard/AlertasPanel";
 import { Apple, Ruler, AlertTriangle, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import moment from "moment";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const puedeMuestrear = user?.role !== "lector";
   const [sesiones, setSesiones] = useState([]);
   const [bloques, setBloques] = useState([]);
   const [metas, setMetas] = useState([]);
@@ -62,12 +65,14 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-[28px] font-semibold tracking-tight text-[#2a1a1d]">Dashboard</h1>
             <p className="text-sm text-[#9b7f82] mt-1">Vista general de la operación de muestreo</p>
           </div>
-          <Link
-            to="/nueva-sesion"
-            className="hidden sm:flex items-center gap-2 bg-[#7a1f33] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#631a29] transition-colors"
-          >
-            <Camera className="w-4 h-4" /> Nuevo muestreo
-          </Link>
+          {puedeMuestrear && (
+            <Link
+              to="/nueva-sesion"
+              className="hidden sm:flex items-center gap-2 bg-[#7a1f33] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#631a29] transition-colors"
+            >
+              <Camera className="w-4 h-4" /> Nuevo muestreo
+            </Link>
+          )}
         </div>
 
         {loading ? (
@@ -92,7 +97,7 @@ export default function Dashboard() {
                 <p className="text-sm font-semibold text-[#2a1a1d] mb-4">Últimos muestreos</p>
                 {sesiones.length === 0 ? (
                   <p className="text-sm text-[#b79a9d] py-8 text-center">
-                    Todavía no hay muestreos. <Link to="/nueva-sesion" className="text-[#7a1f33] underline">Crear el primero</Link>
+                    Todavía no hay muestreos. {puedeMuestrear && <Link to="/nueva-sesion" className="text-[#7a1f33] underline">Crear el primero</Link>}
                   </p>
                 ) : (
                   <div className="overflow-x-auto">

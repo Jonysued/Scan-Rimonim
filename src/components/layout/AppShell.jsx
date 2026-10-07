@@ -1,16 +1,22 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Camera, GitCompare, Settings2 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 
-const NAV = [
+const ALL_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/nueva-sesion", label: "Nuevo muestreo", icon: Camera },
+  { to: "/nueva-sesion", label: "Nuevo muestreo", icon: Camera, muestrear: true },
   { to: "/comparar", label: "Comparar", icon: GitCompare },
-  { to: "/admin", label: "Administración", icon: Settings2 },
+  { to: "/admin", label: "Administración", icon: Settings2, admin: true },
 ];
 
 export default function AppShell({ children }) {
   const location = useLocation();
+  const { user } = useAuth();
+  const role = user?.role;
+  const NAV = ALL_NAV.filter(
+    (n) => (!n.admin || role === "admin") && (!n.muestrear || role !== "lector")
+  );
   return (
     <div className="min-h-screen bg-[#faf7f5]">
       <div className="flex">

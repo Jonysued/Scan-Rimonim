@@ -6,6 +6,7 @@ import AdminFincasBloques from "@/components/admin/AdminFincasBloques";
 import AdminVariedades from "@/components/admin/AdminVariedades";
 import AdminClases from "@/components/admin/AdminClases";
 import AdminMetas from "@/components/admin/AdminMetas";
+import AdminUsuarios from "@/components/admin/AdminUsuarios";
 
 export default function Admin() {
   const [data, setData] = useState({ fincas: [], bloques: [], variedades: [], clases: [], metas: [] });
@@ -39,6 +40,7 @@ export default function Admin() {
             <TabsTrigger value="variedades" className="rounded-lg">Variedades</TabsTrigger>
             <TabsTrigger value="clases" className="rounded-lg">Clases comerciales</TabsTrigger>
             <TabsTrigger value="metas" className="rounded-lg">Metas</TabsTrigger>
+            <TabsTrigger value="usuarios" className="rounded-lg">Usuarios</TabsTrigger>
           </TabsList>
           <TabsContent value="fincas">
             <AdminFincasBloques fincas={data.fincas} bloques={data.bloques} variedades={data.variedades} onRefresh={refresh} />
@@ -51,6 +53,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="metas">
             <AdminMetas metas={data.metas} bloques={data.bloques} onRefresh={refresh} />
+          </TabsContent>
+          <TabsContent value="usuarios">
+            <AdminUsuarios />
           </TabsContent>
         </Tabs>
       </div>
