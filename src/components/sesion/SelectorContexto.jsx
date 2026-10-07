@@ -1,7 +1,7 @@
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function SelectorContexto({ fincas, bloques, fincaId, bloqueId, onFincaChange, onBloqueChange, muestreador, onMuestreadorChange }) {
+export default function SelectorContexto({ fincas, bloques, fincaId, bloqueId, onFincaChange, onBloqueChange, muestreador }) {
   const bloquesFinca = bloques.filter((b) => b.finca_id === fincaId);
   return (
     <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 space-y-4">
@@ -35,12 +35,9 @@ export default function SelectorContexto({ fincas, bloques, fincaId, bloqueId, o
         </div>
         <div>
           <label className="text-xs text-[#9b7f82] mb-1.5 block">Muestreador</label>
-          <input
-            value={muestreador}
-            onChange={(e) => onMuestreadorChange(e.target.value)}
-            placeholder="Nombre"
-            className="w-full rounded-xl border border-[#eee1dc] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7a1f33]/20"
-          />
+          <div className="w-full rounded-xl border border-[#eee1dc] bg-[#f9f6f4] px-3 py-2 text-sm text-[#2a1a1d] truncate">
+            {muestreador || "-"}
+          </div>
         </div>
       </div>
     </div>

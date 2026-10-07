@@ -6,9 +6,11 @@ import SelectorContexto from "@/components/sesion/SelectorContexto";
 import FotoCaptura from "@/components/sesion/FotoCaptura";
 import { Camera, Loader2 } from "lucide-react";
 import normalizeImage from "@/lib/normalizeImage";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function NuevaSesion() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [fincas, setFincas] = useState([]);
   const [bloques, setBloques] = useState([]);
   const [variedades, setVariedades] = useState([]);
@@ -19,6 +21,10 @@ export default function NuevaSesion() {
   const [fotos, setFotos] = useState([]);
   const [finalizing, setFinalizing] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setMuestreador(user?.full_name || user?.email || "");
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -142,7 +148,6 @@ export default function NuevaSesion() {
           }}
           onBloqueChange={setBloqueId}
           muestreador={muestreador}
-          onMuestreadorChange={setMuestreador}
         />
 
         {bloqueId && (
