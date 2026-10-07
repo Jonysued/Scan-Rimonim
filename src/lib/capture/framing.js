@@ -23,5 +23,17 @@ export function framing(image){
   if(Math.hypot(best.cx-.5,best.cy-.5)>.18)return {status:'center',message:'Centrar la fruta'};
   if(best.x0===0||best.y0===0||best.x1===w-1||best.y1===h-1||fraction>.72)return {status:'farther',message:'Alejate: la fruta debe verse completa'};
   if(fraction<.3)return {status:'closer',message:'Acercate: la fruta ocupa poco espacio'};
-  return {status:'ready',message:'Encuadre correcto · mantené quieto'};
+  return {status:'ready',message:'Encuadre correcto · mantené quieto',geometry:{x:best.cx,y:best.cy,size:fraction}};
+}
+
+export function createCaptureHold(durationMs=1000){
+  let start=null,anchor=null,fired=false;
+  return (guide,now)=>{
+    if(fired)return false;
+    const geometry=guide.geometry;
+    if(guide.status!=='ready'||!geometry){start=null;anchor=null;return false;}
+    if(!anchor||Math.hypot(geometry.x-anchor.x,geometry.y-anchor.y)>.025||Math.abs(geometry.size-anchor.size)>.04){start=now;anchor=geometry;return false;}
+    if(now-start<durationMs)return false;
+    fired=true;return true;
+  };
 }
