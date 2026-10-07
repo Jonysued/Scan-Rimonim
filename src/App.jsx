@@ -4,7 +4,11 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { Navigate, useLocation } from 'react-router-dom';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import Lotes from './pages/Lotes';
@@ -16,7 +20,8 @@ import Admin from './pages/Admin';
 import RoleRoute from './components/RoleRoute';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const location = useLocation();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, user, logout } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -27,17 +32,11 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
-  }
-
+  const publicPage = { '/login': <Login/>, '/register': <Register/>, '/forgot-password': <ForgotPassword/>, '/reset-password': <ResetPassword/> }[location.pathname];
+  if (publicPage) return publicPage;
+  if (authError) return <div className="p-8" role="alert">{authError.message}</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace/>;
+  if (user?.role === 'pending') return <div className="p-8">Tu cuenta está confirmada. Falta que el administrador habilite el acceso.<button onClick={logout} className="block mt-4">Cerrar sesión</button></div>;
   // Render the main app
   return (
     <Routes>
