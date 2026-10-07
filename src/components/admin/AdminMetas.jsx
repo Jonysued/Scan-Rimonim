@@ -23,14 +23,14 @@ export default function AdminMetas({ metas, bloques, onRefresh }) {
 
   return (
     <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 max-w-lg">
-      <p className="text-sm font-semibold text-[#2a1a1d] mb-3">Metas por bloque</p>
+      <p className="text-sm font-semibold text-[#2a1a1d] mb-3">Metas por lote</p>
       <div className="space-y-2 mb-3">
         <select
           value={form.bloque_id}
           onChange={(e) => setForm({ ...form, bloque_id: e.target.value })}
           className="w-full rounded-xl border border-[#eee1dc] px-3 py-2 text-sm bg-white"
         >
-          <option value="">Bloque...</option>
+          <option value="">Lote...</option>
           {bloques.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <div className="flex gap-2">

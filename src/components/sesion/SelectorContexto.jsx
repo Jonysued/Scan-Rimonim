@@ -21,10 +21,10 @@ export default function SelectorContexto({ fincas, bloques, fincaId, bloqueId, o
           </Select>
         </div>
         <div>
-          <label className="text-xs text-[#9b7f82] mb-1.5 block">Bloque</label>
+          <label className="text-xs text-[#9b7f82] mb-1.5 block">Lote</label>
           <Select value={bloqueId} onValueChange={onBloqueChange} disabled={!fincaId}>
             <SelectTrigger className="rounded-xl border-[#eee1dc]">
-              <SelectValue placeholder="Elegir bloque" />
+              <SelectValue placeholder="Elegir lote" />
             </SelectTrigger>
             <SelectContent>
               {bloquesFinca.map((b) => (

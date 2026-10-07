@@ -60,7 +60,7 @@ export default function AdminFincasBloques({ fincas, bloques, variedades, onRefr
       </div>
 
       <div className="bg-white rounded-2xl border border-[#eee1dc] p-5">
-        <p className="text-sm font-semibold text-[#2a1a1d] mb-3">Bloques</p>
+        <p className="text-sm font-semibold text-[#2a1a1d] mb-3">Lotes</p>
         <div className="space-y-2 mb-3">
           <select
             value={newBloque.finca_id}
@@ -74,7 +74,7 @@ export default function AdminFincasBloques({ fincas, bloques, variedades, onRefr
             <input
               value={newBloque.name}
               onChange={(e) => setNewBloque({ ...newBloque, name: e.target.value })}
-              placeholder="Nombre del bloque"
+              placeholder="Nombre del lote"
               className="flex-1 rounded-xl border border-[#eee1dc] px-3 py-2 text-sm"
             />
             <select

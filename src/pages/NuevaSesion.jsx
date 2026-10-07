@@ -129,7 +129,7 @@ export default function NuevaSesion() {
     <AppShell>
       <div className="max-w-3xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
         <h1 className="text-2xl font-semibold tracking-tight text-[#2a1a1d] mb-1">Nuevo muestreo</h1>
-        <p className="text-sm text-[#9b7f82] mb-6">Fotografiá las granadas del bloque; la IA mide calibre, color y defectos.</p>
+        <p className="text-sm text-[#9b7f82] mb-6">Fotografiá las granadas del lote; la IA mide calibre, color y defectos.</p>
 
         <SelectorContexto
           fincas={fincas}

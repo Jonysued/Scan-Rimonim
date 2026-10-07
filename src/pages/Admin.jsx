@@ -32,11 +32,11 @@ export default function Admin() {
     <AppShell>
       <div className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
         <h1 className="text-2xl font-semibold tracking-tight text-[#2a1a1d] mb-1">Administración</h1>
-        <p className="text-sm text-[#9b7f82] mb-6">Fincas, bloques, variedades, clases comerciales y metas.</p>
+        <p className="text-sm text-[#9b7f82] mb-6">Fincas, lotes, variedades, clases comerciales y metas.</p>
 
         <Tabs defaultValue="fincas">
           <TabsList className="bg-white border border-[#eee1dc] rounded-xl p-1 mb-5">
-            <TabsTrigger value="fincas" className="rounded-lg">Fincas / Bloques</TabsTrigger>
+            <TabsTrigger value="fincas" className="rounded-lg">Fincas / Lotes</TabsTrigger>
             <TabsTrigger value="variedades" className="rounded-lg">Variedades</TabsTrigger>
             <TabsTrigger value="clases" className="rounded-lg">Clases comerciales</TabsTrigger>
             <TabsTrigger value="metas" className="rounded-lg">Metas</TabsTrigger>

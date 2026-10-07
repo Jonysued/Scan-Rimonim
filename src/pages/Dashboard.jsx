@@ -105,7 +105,7 @@ export default function Dashboard() {
                       <thead>
                         <tr className="text-left text-[11px] text-[#9b7f82] uppercase tracking-wide">
                           <th className="pb-2 pr-4">Fecha</th>
-                          <th className="pb-2 pr-4">Bloque</th>
+                          <th className="pb-2 pr-4">Lote</th>
                           <th className="pb-2 pr-4">Frutos</th>
                           <th className="pb-2 pr-4">Media mm</th>
                           <th className="pb-2">Estado</th>
