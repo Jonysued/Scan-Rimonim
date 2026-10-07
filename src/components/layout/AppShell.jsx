@@ -1,10 +1,11 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Camera, GitCompare, Settings2 } from "lucide-react";
+import { LayoutDashboard, Camera, GitCompare, Settings2, Map } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 const ALL_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/lotes", label: "Lotes", icon: Map },
   { to: "/nueva-sesion", label: "Nuevo muestreo", icon: Camera, muestrear: true },
   { to: "/comparar", label: "Comparar", icon: GitCompare },
   { to: "/admin", label: "Administración", icon: Settings2, admin: true },

@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
+import Lotes from './pages/Lotes';
 import NuevaSesion from './pages/NuevaSesion';
 import SesionResultado from './pages/SesionResultado';
 import BloqueDetalle from './pages/BloqueDetalle';
@@ -41,6 +42,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
+      <Route path="/lotes" element={<Lotes />} />
       <Route element={<RoleRoute roles={["admin", "muestreador"]} />}>
         <Route path="/nueva-sesion" element={<NuevaSesion />} />
       </Route>

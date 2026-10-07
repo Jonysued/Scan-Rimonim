@@ -88,8 +88,8 @@ export default function BloqueDetalle() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-10 pb-10">
-        <Link to="/" className="flex items-center gap-1.5 text-sm text-[#9ca3af] mb-4 hover:text-[#3b82f6]">
-          <ArrowLeft className="w-4 h-4" /> Dashboard
+        <Link to="/lotes" className="flex items-center gap-1.5 text-sm text-[#9ca3af] mb-4 hover:text-[#3b82f6]">
+          <ArrowLeft className="w-4 h-4" /> Lotes
         </Link>
 
         <div className="flex items-center justify-between mb-5">
