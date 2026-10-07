@@ -35,7 +35,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
                   strokeWidth={Math.max(dims.w / 200, 2)}
                   paintOrder="stroke"
                 >
-                  {Math.round(f.diameter_mm)} mm
+                  {Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : "Sin calibre medido"}
                 </text>
               </g>
             );
