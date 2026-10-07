@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { UserPlus, Loader2 } from "lucide-react";
 
 const PERFILES = [
@@ -17,7 +17,7 @@ export default function AdminUsuarios() {
   const [error, setError] = useState("");
 
   const refresh = async () => {
-    const u = await base44.entities.User.list();
+    const u = await appClient.entities.User.list();
     setUsers(u);
     setLoading(false);
   };
@@ -25,7 +25,7 @@ export default function AdminUsuarios() {
   useEffect(() => { refresh(); }, []);
 
   const cambiarPerfil = async (id, role) => {
-    await base44.entities.User.update(id, { role });
+    await appClient.entities.User.update(id, { role });
     setUsers((us) => us.map((u) => (u.id === id ? { ...u, role } : u)));
   };
 
@@ -35,7 +35,7 @@ export default function AdminUsuarios() {
     setInvitando(true);
     setError("");
     try {
-      await base44.users.inviteUser(email.trim(), perfil);
+      await appClient.users.inviteUser(email.trim(), perfil);
       setEmail("");
       await refresh();
     } catch (err) {

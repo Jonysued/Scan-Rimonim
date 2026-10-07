@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function AdminMetas({ metas, bloques, onRefresh }) {
@@ -7,7 +7,7 @@ export default function AdminMetas({ metas, bloques, onRefresh }) {
 
   const add = async () => {
     if (!form.bloque_id) return;
-    await base44.entities.MetaBloque.create({
+    await appClient.entities.MetaBloque.create({
       bloque_id: form.bloque_id,
       target_diameter_mm: form.target_diameter_mm ? Number(form.target_diameter_mm) : undefined,
       max_cracking_pct: form.max_cracking_pct ? Number(form.max_cracking_pct) : undefined,
@@ -17,7 +17,7 @@ export default function AdminMetas({ metas, bloques, onRefresh }) {
     onRefresh();
   };
   const remove = async (id) => {
-    await base44.entities.MetaBloque.delete(id);
+    await appClient.entities.MetaBloque.delete(id);
     onRefresh();
   };
 
