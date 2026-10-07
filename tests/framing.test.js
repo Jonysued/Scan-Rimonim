@@ -6,3 +6,16 @@ test('suitable framing',()=>assert.equal(framing(image(24)).status,'ready'));
 test('cropped/large fruit asks to move back',()=>assert.equal(framing(image(48)).status,'farther'));
 test('off-center fruit asks to center',()=>assert.equal(framing(image(23,125)).status,'center'));
 test('web never emits metric distance',()=>assert.equal('distanceM' in framing(image(24)),false));
+function recolor(frame,color){for(let i=0;i<frame.data.length;i+=4)if(frame.data[i]===190)frame.data.set(color,i);return frame;}
+test('pink skin is recognized',()=>assert.equal(framing(recolor(image(24),[180,160,145,255])).status,'ready'));
+test('yellow skin is recognized',()=>assert.equal(framing(recolor(image(24),[190,180,80,255])).status,'ready'));
+test('shaded red skin is recognized',()=>assert.equal(framing(recolor(image(24),[60,36,26,255])).status,'ready'));
+test('narrow highlights do not split the fruit into tiny fragments',()=>{
+  const frame=image(24);for(let y=0;y<120;y++)for(let x=60;x<104;x+=4){const p=(y*160+x)*4;if(frame.data[p]===190)frame.data.set([230,230,230,255],p);}
+  assert.equal(framing(frame).status,'ready');
+});
+test('portrait camera frames retain the same circular fruit geometry',()=>{
+  const source=image(24),frame={width:120,height:160,data:new Uint8ClampedArray(source.data.length)};
+  for(let y=0;y<120;y++)for(let x=0;x<160;x++)frame.data.set(source.data.subarray((y*160+x)*4,(y*160+x)*4+4),(x*120+y)*4);
+  assert.equal(framing(frame).status,'ready');
+});
