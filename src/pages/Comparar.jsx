@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -12,8 +12,8 @@ export default function Comparar() {
   useEffect(() => {
     (async () => {
       const [b, s] = await Promise.all([
-        base44.entities.Bloque.list(),
-        base44.entities.SesionMuestreo.filter({ status: "listo" }, "-started_at"),
+        appClient.entities.Bloque.list(),
+        appClient.entities.SesionMuestreo.filter({ status: "listo" }, "-started_at"),
       ]);
       setBloques(b);
       setSesiones(s);

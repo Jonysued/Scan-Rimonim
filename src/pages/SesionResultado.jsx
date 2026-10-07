@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
@@ -16,18 +16,18 @@ export default function SesionResultado() {
 
   useEffect(() => {
     (async () => {
-      const s = await base44.entities.SesionMuestreo.get(id);
+      const s = await appClient.entities.SesionMuestreo.get(id);
       setSesion(s);
       const [b, f] = await Promise.all([
-        base44.entities.Bloque.get(s.bloque_id),
-        base44.entities.Foto.filter({ session_id: id }),
+        appClient.entities.Bloque.get(s.bloque_id),
+        appClient.entities.Foto.filter({ session_id: id }),
       ]);
       setBloque(b);
       const withUrls = await Promise.all(
         f.map(async (foto) => {
           if (!foto.storage_uri) return foto;
           try {
-            const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: foto.storage_uri });
+            const { signed_url } = await appClient.integrations.Core.CreateFileSignedUrl({ file_uri: foto.storage_uri });
             return { ...foto, signed_url };
           } catch {
             return foto;
