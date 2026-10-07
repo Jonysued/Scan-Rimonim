@@ -8,7 +8,7 @@ const ALL_NAV = [
   { to: "/lotes", label: "Lotes", icon: Map },
   { to: "/nueva-sesion", label: "Nuevo muestreo", icon: Camera, muestrear: true },
   { to: "/comparar", label: "Comparar", icon: GitCompare },
-  { to: "/admin", label: "Administración", icon: Settings2, admin: true },
+  { to: "/admin", label: "Configuraciones", icon: Settings2, admin: true },
 ];
 
 export default function AppShell({ children }) {

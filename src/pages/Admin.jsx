@@ -31,7 +31,7 @@ export default function Admin() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#2a1a1d] mb-1">Administración</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#2a1a1d] mb-1">Configuraciones</h1>
         <p className="text-sm text-[#9b7f82] mb-6">Fincas, lotes, variedades, clases comerciales y metas.</p>
 
         <Tabs defaultValue="fincas">
