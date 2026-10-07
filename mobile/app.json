@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Scan Rimonim",
+    "slug": "scan-rimonim",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "ios": {
+      "bundleIdentifier": "ar.com.rimonim.scan",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Medir la distancia central y fotografiar una fruta.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "webUrl": ""
+    }
+  }
+}
