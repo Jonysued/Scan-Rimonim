@@ -8,9 +8,10 @@
       "bundleIdentifier": "ar.com.rimonim.scan",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Medir la distancia central y fotografiar una fruta.",
+        "NSCameraUsageDescription": "Fotografiar granadas para analizar color y defectos, y probar la distancia con la c\u00e1mara frontal compatible.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "supportsTablet": false
     },
     "extra": {
       "webUrl": "https://scan-rimonim.vercel.app"

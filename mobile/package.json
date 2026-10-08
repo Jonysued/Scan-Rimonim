@@ -6,7 +6,10 @@
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:ios": "npx eas-cli@latest build --platform ios --profile production",
+    "submit:ios": "npx eas-cli@latest submit --platform ios --profile production",
+    "check": "npm run typecheck && npx expo install --check"
   },
   "dependencies": {
     "expo": "57.0.26",
