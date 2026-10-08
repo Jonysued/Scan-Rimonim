@@ -17,7 +17,7 @@ Configuración contiene variedades, fincas y lotes. Nuevo muestreo exige elegir 
 
 La web mantiene el botón Tomar foto, sin círculo ni bloqueo por detección. Pide una fruta completa y enfocada. No calcula distancia física. OpenAI analiza la foto después de guardarla; la clave OPENAI_API_KEY se configura sólo en el servidor. Si el análisis falla, la foto se conserva y puede reintentarse desde el muestreo.
 
-`mobile/` está conectado a https://scan-rimonim.vercel.app y prepara una app iOS nativa con captura frontal TrueDepth, mensajes de voz y captura tras mantener aproximadamente 40 cm. La distancia corresponde a la superficie central, que puede no ser la fruta. Es experimental y necesita compilación y validación en el iPhone real antes de TestFlight. No funciona en Expo Go. Ver `mobile/README.md`.
+`mobile/` está conectado a https://scan-rimonim.vercel.app y ofrece una app iOS nativa con cámara trasera principal, enfoque automático y botón Tomar foto. No adjunta distancias ni profundidad frontal. La cámara necesita validación en un iPhone real. No funciona en Expo Go. Ver `mobile/README.md`.
 
 No se informa calibre en milímetros sin una escala y geometría validadas. Los valores ausentes se excluyen de promedios, gráficos y alertas de calibre.
 
