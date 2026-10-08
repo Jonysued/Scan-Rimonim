@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {validatedContour} from "@/lib/capture/contourGeometry";
-import {defectLabels, drawableDefect} from "@/lib/capture/defectGeometry";
+import {defectLabels, drawableDefect, defectCoverage} from "@/lib/capture/defectGeometry";
 
 export default function AnnotatedPhoto({ src, fruits = [] }) {
   const [dims, setDims] = useState(null);
@@ -66,7 +66,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
       )}
       </div>
       {fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
-        {fruits.map((f,i) => <p key={i}><strong>Russet / roña:</strong> {Number.isFinite(f.russet_coverage_pct) ? `${Math.round(f.russet_coverage_pct)}% de la superficie visible (estimado)` : 'Sin estimación de superficie · volver a analizar'}</p>)}
+        {fruits.map((f,i) => <div key={i}>{Object.entries(defectLabels).map(([type,label]) => <p key={type}><strong>{label}:</strong> {defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}% de piel visible (estimado)` : 'Sin estimación · volver a analizar'}</p>)}</div>)}
         <p className="mt-1 text-[#9b7f82]">Suma de las zonas afectadas sobre toda la piel visible. La cara oculta no se evalúa.</p>
       </div>}
       {defects.length > 0 && <div className="px-3 py-2 space-y-1 text-xs text-[#63343b]">
