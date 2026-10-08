@@ -8,6 +8,7 @@ import ColorResultado from "@/components/sesion/ColorResultado";
 import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
 import moment from "moment";
 import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
+import {defectLabels,defectCoverage} from "@/lib/capture/defectGeometry";
 import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
@@ -94,7 +95,7 @@ export default function SesionResultado() {
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <AlertTriangle className="w-4 h-4 text-[#b4542a] mx-auto mb-1.5" />
             <p className="text-lg font-semibold text-[#2a1a1d]">{pending || !hasFruits || sesion.cracking_pct == null ? "—" : `${sesion.cracking_pct.toFixed(0)}%`}</p>
-            <p className="text-[11px] text-[#9b7f82]">Rajado</p>
+            <p className="text-[11px] text-[#9b7f82]">Frutos con rajado</p>
           </div>
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <Droplets className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
@@ -107,6 +108,13 @@ export default function SesionResultado() {
           <p className="text-sm font-semibold text-[#2a1a1d]">Cobertura roja de la cara visible</p>
           <p className="text-sm text-[#9b7f82] mt-2">Estimación visual de OpenAI; corresponde a la cara fotografiada y depende de la iluminación. Las fotos anteriores necesitan un nuevo análisis para obtener este dato.</p>
           {allFruits.map((f, i) => <p key={i} className="text-sm mt-2">Fruta {i + 1}: {Number.isFinite(f.red_coverage_pct) ? `${Math.round(f.red_coverage_pct)}% de piel visible roja` : "Sin cobertura estimada"} · {{verde:"Verde",rosado:"Rosado",rojo:"Rojo",rojo_oscuro:"Rojo oscuro"}[f.color_category] || "Sin categoría"}</p>)}
+          {!allFruits.length && <p className="text-sm mt-2">Sin frutas analizadas.</p>}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mb-5">
+          <p className="text-sm font-semibold text-[#2a1a1d]">Superficie visible afectada por defecto</p>
+          <p className="text-sm text-[#9b7f82] mt-2">Porcentaje estimado por OpenAI sobre la piel fotografiada. Los defectos pueden solaparse. Si falta el dato, volvé a analizar la foto.</p>
+          {allFruits.map((f,i)=><div key={i} className="mt-3 text-sm"><p className="font-medium">Fruta {i+1}</p>{Object.entries(defectLabels).map(([type,label])=><p key={type}>{label}: <strong>{defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}%` : 'Sin estimación'}</strong></p>)}</div>)}
           {!allFruits.length && <p className="text-sm mt-2">Sin frutas analizadas.</p>}
         </div>
 
