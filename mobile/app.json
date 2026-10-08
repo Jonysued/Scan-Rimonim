@@ -8,13 +8,17 @@
       "bundleIdentifier": "ar.com.rimonim.scan",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Fotografiar granadas para analizar color y defectos, y probar la distancia con la c\u00e1mara frontal compatible.",
+        "NSCameraUsageDescription": "Fotografiar granadas para analizar color y defectos, y probar la distancia con la cámara frontal compatible.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "supportsTablet": false
     },
     "extra": {
-      "webUrl": "https://scan-rimonim.vercel.app"
-    }
+      "webUrl": "https://scan-rimonim.vercel.app",
+      "eas": {
+        "projectId": "3792ac7f-97e5-4950-a7a2-c8b325ab2288"
+      }
+    },
+    "owner": "jonysueds-team"
   }
 }
