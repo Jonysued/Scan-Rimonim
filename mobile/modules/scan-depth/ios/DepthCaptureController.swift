@@ -147,7 +147,9 @@ final class DepthCaptureController: UIViewController, AVCapturePhotoCaptureDeleg
       return
     }
     do {
-      let url = FileManager.default.temporaryDirectory.appendingPathComponent("rear-\(UUID().uuidString).jpg")
+      // Expo FileSystem allows cleanup inside the app cache, not the iOS tmp directory.
+      let cache = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+      let url = cache.appendingPathComponent("rear-\(UUID().uuidString).jpg")
       try data.write(to: url, options: .atomic)
       DispatchQueue.main.async {
         guard !self.finished else { try? FileManager.default.removeItem(at: url); return }
