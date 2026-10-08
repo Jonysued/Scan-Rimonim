@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, {localization} from '../api/analyzePhoto.js';
 import {samplingSummary} from '../src/lib/capture/savePhoto.js';
+const contour=Array.from({length:16},(_,i)=>({x:400+200*Math.cos(i*Math.PI/8),y:400+100*Math.sin(i*Math.PI/8)}));
 
 async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fruits=[]}={}) {
   const oldFetch=globalThis.fetch;
@@ -22,9 +23,11 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     assert.equal(url,'https://api.openai.com/v1/chat/completions');
     assert.equal(options.headers.Authorization,'Bearer test-openai-key');
     const body=JSON.parse(options.body);
-    assert.equal(body.model,'gpt-4.1-mini');
+    assert.equal(body.model,'gpt-5.4');
+    assert.equal(body.reasoning_effort,'medium');
+    assert.equal(body.max_completion_tokens,4000);
     assert.equal(body.store,false);
-    assert.equal(body.messages[0].content[1].image_url.detail,'high');
+    assert.equal(body.messages[0].content[1].image_url.detail,'original');
     assert.match(body.messages[0].content[0].text,/sombra proyectada/);
     return Response.json({choices:[{message:{content:JSON.stringify({fruits})}}]},{status:aiStatus});
   };
@@ -73,10 +76,11 @@ test('missing color is unknown rather than pink or zero intensity',async()=>{
   assert.equal(samplingSummary([{status:'listo',fruits:res.data.fruits}]).red_pct,null);
 });
 
-test('named bounds preserve independent x and y axes for portrait images',()=>{
-  const f=localization({body_box:{left:200,top:300,right:600,bottom:500},localization_confidence:.95});
-  assert.equal(f.center_x_pct,40);assert.equal(f.center_y_pct,40);
-  assert.equal(f.radius_pct,20);assert.equal(f.radius_y_pct,10);
+test('AI contour preserves independent x and y axes without substituting a circle',()=>{
+  const f=localization({body_contour:contour,localization_confidence:.95});
+  assert.deepEqual(f.body_contour,contour);
+  assert.equal(f.localization_version,3);
+  assert.equal(f.radius_pct,undefined);
   assert.equal(f.localization_status,'located');
 });
 test('uncertain, legacy, and malformed locations never receive drawable coordinates',()=>{
