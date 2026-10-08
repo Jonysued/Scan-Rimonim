@@ -108,3 +108,13 @@ test('uncertain localization retains color analysis without claiming a circle or
   assert.equal(res.data.fruits[0].center_x_pct,undefined);
   assert.equal(res.data.fruits[0].diameter_mm,null);
 });
+
+test('API returns positioned defects separately from fruit contour and keeps uncertain locations unmarked',async()=>{
+  const {res}=await run({fruits:[{defects:[
+    {type:'russet',severity:'leve',confidence:.9,location_confidence:.95,region:{left:300,top:800,right:600,bottom:1000}},
+    {type:'cracking',severity:'media',confidence:.9,location_confidence:.4,region:{left:300,top:800,right:600,bottom:1000}},
+  ]}]});
+  assert.deepEqual(res.data.fruits[0].defects[0].region,{left:200,top:400,right:400,bottom:500});
+  assert.equal(res.data.fruits[0].defects[1].region,null);
+  assert.equal(res.data.fruits[0].defects[1].type,'cracking');
+});
