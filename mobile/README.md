@@ -2,7 +2,11 @@
 
 App nativa Expo con módulo Swift local. No funciona en Expo Go ni desde Safari.
 
-La captura usa exclusivamente la cámara trasera principal, con enfoque y exposición automáticos, vista previa sin espejo y botón «Tomar foto». No requiere TrueDepth frontal. Devuelve una foto JPEG al mismo flujo web de guardado y análisis. No adjunta distancia, profundidad ni calibre métrico: esas mediciones necesitan una implementación trasera y validación física independiente.
+En equipos compatibles con `ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth)`, la captura usa ARKit con cámara trasera y LiDAR. Exporta una foto JPEG y el mapa de profundidad/confianza del mismo ARFrame. Ambos se rotan a vertical; los intrínsecos se escalan al mapa y se rotan con él. La vista previa puede recortar la imagen, pero el análisis siempre usa el JPEG completo. No exporta GPS ni pose mundial. En equipos sin LiDAR mantiene la cámara trasera fotográfica sin estimación métrica.
+
+El contorno delimita una nube de puntos interior con confianza alta. Un ajuste esférico entrega un diámetro **experimental** solamente si supera controles de cobertura, distancia, resolución, residuo y concordancia con el contorno. Se guarda en `fruits[].lidar_estimate`, separado de `diameter_mm` y de los promedios de calibre validado. No afirma precisión milimétrica ni representa el diámetro real de frutos irregulares. La validación física sigue pendiente.
+
+Probar en iPhone Pro con LiDAR: una granada inmóvil de frente a 30–70 cm; comparar varios frutos con calibre físico, repetir desde distintas distancias, comprobar giro/orientación, sombra, baja luz, reflejos y fruta irregular. Verificar que no acepte profundidad plana/fondo como diámetro y que fotos de galería o teléfonos sin LiDAR sigan sin medición. Confirmar cancelación/interrupciones y reanálisis conservando metadatos. El simulador no valida LiDAR.
 
 Probar en un iPhone real: permiso de cámara permitido y rechazado, vista previa trasera, orientación vertical, enfoque cercano, cancelación, toma repetida, guardado y análisis, interrupción y recuperación de conexión.
 

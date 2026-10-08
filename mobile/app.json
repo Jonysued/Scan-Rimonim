@@ -9,7 +9,7 @@
       "bundleIdentifier": "ar.com.rimonim.scan",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Fotografiar granadas con la cámara trasera para analizar color y defectos.",
+        "NSCameraUsageDescription": "Fotografiar granadas con la cámara trasera y usar LiDAR compatible para estimar su diámetro, color y defectos.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "supportsTablet": false
