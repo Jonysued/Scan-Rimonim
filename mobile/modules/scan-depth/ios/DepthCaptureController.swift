@@ -227,12 +227,27 @@ final class DepthCaptureController: UIViewController, AVCaptureDataOutputSynchro
     do {
       let url = FileManager.default.temporaryDirectory.appendingPathComponent("depth-\(UUID().uuidString).jpg")
       try jpeg.write(to: url, options: .atomic)
+      var geometry: [String: Any] = [
+        "status": "experimental-unvalidated", "imageWidth": cg.width, "imageHeight": cg.height,
+        "depthWidth": width, "depthHeight": height, "imageOrientation": "sensor-native",
+        "distanceTarget": "central-surface", "metricDiameterAvailable": false
+      ]
+      if let calibration = d.depthData.cameraCalibrationData {
+        let matrix = calibration.intrinsicMatrix
+        geometry["intrinsicsColumnMajor"] = [
+          Double(matrix.columns.0.x), Double(matrix.columns.0.y), Double(matrix.columns.0.z),
+          Double(matrix.columns.1.x), Double(matrix.columns.1.y), Double(matrix.columns.1.z),
+          Double(matrix.columns.2.x), Double(matrix.columns.2.y), Double(matrix.columns.2.z)
+        ]
+        geometry["intrinsicReferenceWidth"] = Double(calibration.intrinsicMatrixReferenceDimensions.width)
+        geometry["intrinsicReferenceHeight"] = Double(calibration.intrinsicMatrixReferenceDimensions.height)
+      }
       let result: [String: Any] = ["uri": url.absoluteString, "width": cg.width, "height": cg.height,
         "capturedAt": ISO8601DateFormatter().string(from: Date()),
         "depthCapture": ["version": 1, "method": "truedepth-front", "distanceM": (Double(median) * 1_000_000).rounded() / 1_000_000,
           "targetM": 0.4, "toleranceM": 0.03, "stableDurationMs": Int((timestamp - began) * 1000),
           "validFraction": Double(values.count) / Double(total), "spreadM": (Double(spread) * 1_000_000).rounded() / 1_000_000,
-          "region": "center", "validation": "experimental"]]
+          "region": "center", "validation": "experimental", "geometry": geometry]]
       DispatchQueue.main.async {
         self.speak("Foto tomada")
         UINotificationFeedbackGenerator().notificationOccurred(.success)
