@@ -16,10 +16,11 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     const url=String(input);calls.push(url);
     if(url.includes('/auth/v1/user'))return Response.json({id:'owner'});
     if(url.includes('/rest/v1/profiles'))return Response.json({role});
-    if(url.includes('/storage/v1/object/sign/')){
+    if(url.includes('/storage/v1/object/sign/') && options.method==='POST'){
       assert.equal(new Headers(options.headers).get('Authorization'),'Bearer user-token');
       return Response.json({signedURL:'/object/sign/photos/owner/photo.jpg?token=test'});
     }
+    if(url.includes('/object/sign/photos/')) return new Response(new Uint8Array([255,216,255,192,0,8,8,7,208,5,220,0]));
     assert.equal(url,'https://api.openai.com/v1/chat/completions');
     assert.equal(options.headers.Authorization,'Bearer test-openai-key');
     const body=JSON.parse(options.body);
@@ -29,6 +30,7 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     assert.equal(body.store,false);
     assert.equal(body.messages[0].content[1].image_url.detail,'original');
     assert.match(body.messages[0].content[0].text,/sombra proyectada/);
+    assert.match(body.messages[0].content[0].text,/ancho=1500 píxeles; alto=2000 píxeles/);
     return Response.json({choices:[{message:{content:JSON.stringify({fruits})}}]},{status:aiStatus});
   };
   const res={code:200,status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
@@ -78,10 +80,15 @@ test('missing color is unknown rather than pink or zero intensity',async()=>{
 
 test('AI contour preserves independent x and y axes without substituting a circle',()=>{
   const f=localization({body_contour:contour,localization_confidence:.95});
-  assert.deepEqual(f.body_contour,contour);
+  f.body_contour.forEach((p,i)=>{assert.ok(Math.abs(p.x-contour[i].x)<1e-9);assert.ok(Math.abs(p.y-contour[i].y)<1e-9);});
   assert.equal(f.localization_version,3);
   assert.equal(f.radius_pct,undefined);
   assert.equal(f.localization_status,'located');
+});
+test('original pixel coordinates are scaled independently for portrait photos',()=>{
+  const pixels=contour.map(p=>({x:p.x*1.5,y:p.y*2}));
+  const result=localization({body_contour:pixels,localization_confidence:.95},{width:1500,height:2000});
+  result.body_contour.forEach((p,i)=>{assert.ok(Math.abs(p.x-contour[i].x)<1e-9);assert.ok(Math.abs(p.y-contour[i].y)<1e-9);});
 });
 test('uncertain, legacy, and malformed locations never receive drawable coordinates',()=>{
   for(const f of [
