@@ -1,17 +1,30 @@
 import React, { useState } from "react";
+import {bodyContour} from "@/lib/capture/bodyContour";
 
 export default function AnnotatedPhoto({ src, fruits = [] }) {
   const [dims, setDims] = useState(null);
-  const located = fruits.filter(f => f.localization_version === 2 && f.localization_status === 'located' &&
-    ['center_x_pct', 'center_y_pct', 'radius_pct', 'radius_y_pct'].every(k => Number.isFinite(f[k]) && f[k] >= 0 && f[k] <= 100));
+  const [pixels, setPixels] = useState(null);
+  const located = pixels ? fruits.filter(f => f.localization_version === 2 && f.localization_status === 'located')
+    .flatMap(f => {const body=bodyContour(pixels,f);return body?[{...f,...body}]:[];}) : [];
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-[#eee1dc] bg-[#f4e9e5]">
       <img
         src={src}
         alt="Foto de muestreo"
+        crossOrigin="anonymous"
         className="w-full block"
-        onLoad={(e) => setDims({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+        onLoad={(e) => {
+          const img=e.target;
+          setDims({ w: img.naturalWidth, h: img.naturalHeight });
+          try {
+            const canvas=document.createElement('canvas');
+            const scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
+            canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
+            const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,canvas.width,canvas.height);
+            setPixels(ctx.getImageData(0,0,canvas.width,canvas.height));
+          } catch {setPixels(null);}
+        }}
       />
       {dims && located.length > 0 && (
         <svg
@@ -44,7 +57,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
           })}
         </svg>
       )}
-      {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno sin validar · volver a analizar</p>}
+      {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno no confirmado · volver a analizar</p>}
     </div>
   );
 }
