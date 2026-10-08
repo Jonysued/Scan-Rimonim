@@ -57,7 +57,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
             const r=Math.max(dims.w/45, 10);
             return <g key={d.number}>
               <title>{d.number}. {defectLabels[d.type]} · {d.severity}</title>
-              <rect x={x} y={y} width={(b.right-b.left)*dims.w/1000} height={(b.bottom-b.top)*dims.h/1000} rx={r/3} fill="#f97316" fillOpacity="0.12" stroke="#f97316" strokeWidth={Math.max(dims.w/250,2)} />
+              <rect x={x} y={y} width={(b.right-b.left)*dims.w/1000} height={(b.bottom-b.top)*dims.h/1000} rx={r/3} fill="#f97316" fillOpacity="0.12" stroke="#f97316" strokeWidth={Math.max(dims.w/250,2)} strokeDasharray={d.localization_status==='tentative' ? `${r/2} ${r/3}` : undefined} />
               <circle cx={x+r} cy={y+r} r={r} fill="#c2410c" stroke="white" strokeWidth={Math.max(dims.w/500,1)} />
               <text x={x+r} y={y+r} textAnchor="middle" dominantBaseline="central" fill="white" fontSize={r*1.3} fontWeight="700">{d.number}</text>
             </g>;
@@ -67,7 +67,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
       </div>
       {defects.length > 0 && <div className="px-3 py-2 space-y-1 text-xs text-[#63343b]">
         <p className="font-medium">Defectos detectados por OpenAI · zonas aproximadas</p>
-        {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{!drawableDefect(d) && ' · ubicación no confirmada'}</p>)}
+        {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{d.localization_status==='tentative' && ' · ubicación incierta (línea punteada)'}{!drawableDefect(d) && ' · ubicación no confirmada'}</p>)}
         {defects.some(d=>!drawableDefect(d)) && <p className="text-[#9b7f82]">Volvé a analizar para intentar ubicar los defectos sobre la foto.</p>}
       </div>}
       {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno no confirmado · volver a analizar</p>}
