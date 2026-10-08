@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../api/analyzePhoto.js';
+import handler, {localization} from '../api/analyzePhoto.js';
 import {samplingSummary} from '../src/lib/capture/savePhoto.js';
 
 async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fruits=[]}={}) {
@@ -24,6 +24,8 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     const body=JSON.parse(options.body);
     assert.equal(body.model,'gpt-4.1-mini');
     assert.equal(body.store,false);
+    assert.equal(body.messages[0].content[1].image_url.detail,'high');
+    assert.match(body.messages[0].content[0].text,/sombra proyectada/);
     return Response.json({choices:[{message:{content:JSON.stringify({fruits})}}]},{status:aiStatus});
   };
   const res={code:200,status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
@@ -69,4 +71,27 @@ test('missing color is unknown rather than pink or zero intensity',async()=>{
   assert.equal(res.data.fruits[0].color_category,null);
   assert.equal(res.data.fruits[0].color_score,null);
   assert.equal(samplingSummary([{status:'listo',fruits:res.data.fruits}]).red_pct,null);
+});
+
+test('named bounds preserve independent x and y axes for portrait images',()=>{
+  const f=localization({body_box:{left:200,top:300,right:600,bottom:500},localization_confidence:.95});
+  assert.equal(f.center_x_pct,40);assert.equal(f.center_y_pct,40);
+  assert.equal(f.radius_pct,20);assert.equal(f.radius_y_pct,10);
+  assert.equal(f.localization_status,'located');
+});
+test('uncertain, legacy, and malformed locations never receive drawable coordinates',()=>{
+  for(const f of [
+    {box_2d:[100,200,800,900]},
+    {body_box:{left:200,top:300,right:600,bottom:500},localization_confidence:.6},
+    {body_box:{left:600,top:300,right:200,bottom:500},localization_confidence:.95},
+    {body_box:{left:200,top:300,right:600,bottom:1001},localization_confidence:.95},
+    {body_box:{left:200,top:300,right:600,bottom:500},localization_confidence:2},
+  ]){const result=localization(f);assert.equal(result.localization_status,'uncertain');assert.equal(result.center_x_pct,undefined);}
+});
+test('uncertain localization retains color analysis without claiming a circle or calibre',async()=>{
+  const {res}=await run({fruits:[{body_box:null,localization_confidence:0,color_category:'rojo',red_coverage_pct:55}]});
+  assert.equal(res.data.fruits[0].red_coverage_pct,55);
+  assert.equal(res.data.fruits[0].localization_status,'uncertain');
+  assert.equal(res.data.fruits[0].center_x_pct,undefined);
+  assert.equal(res.data.fruits[0].diameter_mm,null);
 });
