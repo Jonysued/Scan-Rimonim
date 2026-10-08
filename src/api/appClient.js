@@ -10,7 +10,21 @@ function entity(table) {
     get:id=>unwrap(getClient().from(table).select('*').eq('id',id).single()),
     create:data=>unwrap(getClient().from(table).insert(data).select().single()),
     update:(id,data)=> table==='profiles' ? request('users',{action:'role',id,role:data.role}) : unwrap(getClient().from(table).update(data).eq('id',id).select().single()),
-    delete:id=>unwrap(getClient().from(table).delete().eq('id',id)) };
+    delete:id=>table==='sesiones' ? deleteSample(id) : unwrap(getClient().from(table).delete().eq('id',id)) };
+}
+async function deleteSample(id) {
+  const result = await unwrap(getClient().rpc('delete_sample', {sample_id:id}));
+  const paths = result.storage_uris || [];
+  let cleanupWarning = false;
+  if (paths.length) {
+    try {
+      for (let offset=0; offset<paths.length; offset+=100) {
+        const {error} = await getClient().storage.from('photos').remove(paths.slice(offset,offset+100));
+        if (error) cleanupWarning = true;
+      }
+    } catch { cleanupWarning = true; }
+  }
+  return {deleted_id:result.deleted_id, cleanupWarning};
 }
 async function request(action,body) {
   const session=await unwrap(getClient().auth.getSession());
