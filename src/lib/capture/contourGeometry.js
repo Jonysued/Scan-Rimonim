@@ -1,6 +1,6 @@
 // Validate model geometry, without using fruit/background colour thresholds.
 export function validatedContour(points) {
-  if (!Array.isArray(points) || points.length < 12 || points.length > 64) return null;
+  if (!Array.isArray(points) || points.length < 12 || points.length > 256) return null;
   if (!points.every(p => p && ['x','y'].every(k => Number.isFinite(p[k]) && p[k] >= 0 && p[k] <= 1000))) return null;
   // Both open and explicitly closed rings describe the same contour.
   points=points.filter((p,i)=>i===0 || p.x!==points[i-1].x || p.y!==points[i-1].y);

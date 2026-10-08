@@ -1,4 +1,5 @@
 // Persist the image record before optional analysis. Retry updates the same record.
+import {segmentFruit} from './segmentFruit.js';
 export async function savePhoto(client, foto, sessionId, variedadName, onSaved = () => {}) {
   const storage_uri = foto.storage_uri || (await client.integrations.Core.UploadPrivateFile({file: foto.file})).file_uri;
   foto.storage_uri = storage_uri;
@@ -12,9 +13,17 @@ export async function savePhoto(client, foto, sessionId, variedadName, onSaved =
   try {
     const {data} = await client.functions.invoke('analyzePhoto', {storage_uri, variedad_name: variedadName});
     const fruits = data.fruits || [];
+    let segmentationError;
+    for(const fruit of fruits) {
+      if(fruit.localization_version!==4 || fruit.localization_status!=='seeded') continue;
+      try {
+        const points=await segmentFruit(client,storage_uri,fruit.segmentation_seed);
+        Object.assign(fruit,{localization_status:points?'located':'uncertain',body_contour:points,segmentation_model:'mediapipe-magic-touch-v2'});
+      } catch(error) {fruit.localization_status='uncertain';segmentationError=error.message;}
+    }
     const values = {status: 'listo', fruits, fruit_count_estimate: data.fruit_count_estimate ?? fruits.length};
     await client.entities.Foto.update(photo.id, values);
-    return {...values, photoId: photo.id, storage_uri};
+    return {...values, photoId: photo.id, storage_uri,analysisError:segmentationError};
   } catch (error) {
     // 'procesando' or 'error' both mean not analyzed; the saved record survives.
     await client.entities.Foto.update(photo.id, {status: 'error'}).catch(() => {});
