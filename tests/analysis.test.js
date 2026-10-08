@@ -46,6 +46,10 @@ test('unactivated credits returns actionable error instead of implying a backgro
   const {res}=await run({aiStatus:402});assert.equal(res.code,503);assert.match(res.data.error,/saldo/);
 });
 test('retry summary reports missing analysis and missing scale without zero measurements',()=>{
+  const empty=samplingSummary([{status:'listo',fruits:[]}]);
+  assert.equal(empty.red_pct,null);
+  assert.equal(empty.cracking_pct,null);
+  assert.equal(empty.avg_diameter_mm,null);
   assert.equal(samplingSummary([{status:'error',fruits:[]}]).red_pct,null);
   const s=samplingSummary([{status:'listo',fruits:[{color_category:'rojo',diameter_mm:null}]}]);
   assert.equal(s.status,'listo');assert.equal(s.red_pct,100);assert.equal(s.avg_diameter_mm,null);
