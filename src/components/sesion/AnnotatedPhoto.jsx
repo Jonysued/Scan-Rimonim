@@ -65,6 +65,10 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
         </svg>
       )}
       </div>
+      {fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
+        {fruits.map((f,i) => <p key={i}><strong>Russet / roña:</strong> {Number.isFinite(f.russet_coverage_pct) ? `${Math.round(f.russet_coverage_pct)}% de la superficie visible (estimado)` : 'Sin estimación de superficie · volver a analizar'}</p>)}
+        <p className="mt-1 text-[#9b7f82]">Suma de las zonas afectadas sobre toda la piel visible. La cara oculta no se evalúa.</p>
+      </div>}
       {defects.length > 0 && <div className="px-3 py-2 space-y-1 text-xs text-[#63343b]">
         <p className="font-medium">Defectos detectados por OpenAI · zonas aproximadas</p>
         {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{d.localization_status==='tentative' && ' · ubicación incierta (línea punteada)'}{!drawableDefect(d) && ' · ubicación no confirmada'}</p>)}
