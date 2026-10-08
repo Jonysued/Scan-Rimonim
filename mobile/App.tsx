@@ -13,7 +13,10 @@ export default function App(){
  const origin=new URL(url).origin;
  async function capture(){if(busy.current)return;busy.current=true;let result:any;
   try{const native=requireNativeModule('ScanDepth');const shot=await native.capture();if(!shot){result={cancelled:true};}else{
-   try{const base64=await FileSystem.readAsStringAsync(shot.uri,{encoding:FileSystem.EncodingType.Base64});result={base64,depthCapture:shot.depthCapture};}finally{await FileSystem.deleteAsync(shot.uri,{idempotent:true});}}
+   try{const base64=await FileSystem.readAsStringAsync(shot.uri,{encoding:FileSystem.EncodingType.Base64});result={base64,depthCapture:shot.depthCapture};}finally{
+    // Cleanup must never discard a successfully captured photo or mask a read error.
+    try{await FileSystem.deleteAsync(shot.uri,{idempotent:true});}catch{console.warn('No se pudo limpiar el archivo temporal de la captura.');}
+   }}
   }catch(e){result={error:e instanceof Error?e.message:'No se pudo tomar la foto.'};}finally{busy.current=false;}
   if(result)ref.current?.injectJavaScript(`window.scanDepthResult?.(${JSON.stringify(result)});true;`);
  }
