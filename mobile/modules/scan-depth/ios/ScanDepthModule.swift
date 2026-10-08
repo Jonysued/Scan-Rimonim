@@ -16,8 +16,8 @@ public class ScanDepthModule: Module {
         promise.reject("NO_VIEW", "No se pudo abrir la cámara.")
         return
       }
-      guard AVCaptureDevice.default(.builtInTrueDepthCamera, for: .video, position: .front) != nil else {
-        promise.reject("DEPTH_UNSUPPORTED", "Este teléfono no entrega profundidad frontal compatible.")
+      guard AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil else {
+        promise.reject("CAMERA_UNSUPPORTED", "La cámara trasera no está disponible.")
         return
       }
       let controller = DepthCaptureController { result, error in
