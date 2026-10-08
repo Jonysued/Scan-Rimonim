@@ -5,8 +5,12 @@ const contour=Array.from({length:16},(_,i)=>({x:500+200*Math.cos(i*Math.PI/8),y:
 test('keeps AI contour geometry irrespective of background colour',()=>{
   assert.deepEqual(validatedContour(contour),contour);
 });
-test('rejects missing, short, out of bounds, non-numeric and duplicate points',()=>{
-  for(const points of [null,[],contour.slice(0,4),contour.map((p,i)=>i? p:{x:1001,y:400}),contour.map((p,i)=>i?p:{x:'500',y:400}),[contour[0],...contour]]) assert.equal(validatedContour(points),null);
+test('rejects missing, short, out of bounds and non-numeric points',()=>{
+  for(const points of [null,[],contour.slice(0,4),contour.map((p,i)=>i? p:{x:1001,y:400}),contour.map((p,i)=>i?p:{x:'500',y:400})]) assert.equal(validatedContour(points),null);
+});
+test('normalizes closed rings and repeated consecutive points without changing the border',()=>{
+  assert.deepEqual(validatedContour([...contour,contour[0]]),contour);
+  assert.deepEqual(validatedContour([contour[0],...contour]),contour);
 });
 test('rejects a self-intersecting polygon instead of drawing a misleading outline',()=>{
   const crossed=[...contour];[crossed[2],crossed[10]]=[crossed[10],crossed[2]];

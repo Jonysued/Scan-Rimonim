@@ -24,8 +24,8 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     assert.equal(options.headers.Authorization,'Bearer test-openai-key');
     const body=JSON.parse(options.body);
     assert.equal(body.model,'gpt-5.4');
-    assert.equal(body.reasoning_effort,'medium');
-    assert.equal(body.max_completion_tokens,4000);
+    assert.equal(body.reasoning_effort,'high');
+    assert.equal(body.max_completion_tokens,8000);
     assert.equal(body.store,false);
     assert.equal(body.messages[0].content[1].image_url.detail,'original');
     assert.match(body.messages[0].content[0].text,/sombra proyectada/);
