@@ -13,6 +13,6 @@ Pod::Spec.new do |s|
   s.source = { :git => 'https://github.com/Jonysued/Scan-Rimonim.git' }
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
-  s.frameworks = 'AVFoundation', 'CoreImage', 'UIKit'
+  s.frameworks = 'AVFoundation', 'CoreImage', 'UIKit', 'ARKit', 'SceneKit'
   s.source_files = '**/*.swift'
 end

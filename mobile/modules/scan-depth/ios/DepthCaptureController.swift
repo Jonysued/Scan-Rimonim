@@ -32,7 +32,7 @@ final class DepthCaptureController: UIViewController, AVCapturePhotoCaptureDeleg
     status.numberOfLines = 0
     status.textAlignment = .center
     status.font = .systemFont(ofSize: 19, weight: .semibold)
-    status.text = "Cámara trasera\nCentrar una sola granada y mantenerla enfocada."
+    status.text = "Cámara trasera · Sin LiDAR\nCentrar una granada. Foto sin calibre métrico."
     guide.layer.borderWidth = 3
     guide.layer.borderColor = UIColor.white.cgColor
     guide.layer.cornerRadius = 12
