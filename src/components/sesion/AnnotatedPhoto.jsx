@@ -3,7 +3,7 @@ import {validatedContour} from "@/lib/capture/contourGeometry";
 
 export default function AnnotatedPhoto({ src, fruits = [] }) {
   const [dims, setDims] = useState(null);
-  const located = fruits.filter(f => f.localization_version === 3 && f.localization_status === 'located' && validatedContour(f.body_contour));
+  const located = fruits.filter(f => f.localization_version === 4 && f.segmentation_model === 'mediapipe-magic-touch-v2' && f.localization_status === 'located' && validatedContour(f.body_contour));
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-[#eee1dc] bg-[#f4e9e5]">
