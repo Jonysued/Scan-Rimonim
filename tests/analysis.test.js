@@ -119,3 +119,13 @@ test('API returns defect regions separately from fruit contour and labels uncert
   assert.equal(res.data.fruits[0].defects[1].localization_status,'tentative');
   assert.equal(res.data.fruits[0].defects[1].type,'cracking');
 });
+
+
+test('russet surface is fruit-level coverage, preserves zero and rejects unknown or invalid values',async()=>{
+  for(const [input,expected] of [[0,0],[18.5,18.5],[100,100],[null,null],[undefined,null],[-1,null],[101,null],["25",null]]){
+    const {res}=await run({fruits:[{russet_coverage_pct:input,defects:[{type:'russet',severity:'leve'},{type:'russet',severity:'media'}]}]});
+    assert.equal(res.data.fruits[0].russet_coverage_pct,expected);
+    assert.equal(res.data.fruits[0].russet_coverage_basis,'visible_skin');
+    assert.equal(res.data.fruits[0].defects.length,2);
+  }
+});
