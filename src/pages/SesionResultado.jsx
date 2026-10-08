@@ -61,6 +61,7 @@ export default function SesionResultado() {
   if(!sesion)return <AppShell><p role="alert" className="p-6">{error||"No se pudo cargar el muestreo."}</p></AppShell>;
 
   const allFruits = fotos.flatMap((f) => f.fruits || []);
+  const hasFruits = allFruits.length > 0;
   const pending = fotos.some(f => f.status !== "listo");
   const defectCounts = {};
   allFruits.forEach((f) => (f.defects || []).forEach((d) => {
@@ -91,12 +92,12 @@ export default function SesionResultado() {
           </div>
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <AlertTriangle className="w-4 h-4 text-[#b4542a] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{pending ? "—" : `${(sesion.cracking_pct || 0).toFixed(0)}%`}</p>
+            <p className="text-lg font-semibold text-[#2a1a1d]">{pending || !hasFruits || sesion.cracking_pct == null ? "—" : `${sesion.cracking_pct.toFixed(0)}%`}</p>
             <p className="text-[11px] text-[#9b7f82]">Rajado</p>
           </div>
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <Droplets className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{pending ? "—" : `${(sesion.red_pct || 0).toFixed(0)}%`}</p>
+            <p className="text-lg font-semibold text-[#2a1a1d]">{pending || !hasFruits || sesion.red_pct == null ? "—" : `${sesion.red_pct.toFixed(0)}%`}</p>
             <p className="text-[11px] text-[#9b7f82]">Rojo</p>
           </div>
         </div>
@@ -111,7 +112,7 @@ export default function SesionResultado() {
             <Apple className="w-4 h-4 text-[#7a1f33]" /> Top defectos
           </p>
           {topDefects.length === 0 ? (
-            <p className="text-sm text-[#b79a9d]">{pending ? "Análisis de defectos pendiente." : "Sin defectos detectados."}</p>
+            <p className="text-sm text-[#b79a9d]">{pending ? "Análisis de defectos pendiente." : !hasFruits ? "No se detectó una granada completa. Tomá otra foto con la fruta enfocada y visible." : "Sin defectos detectados."}</p>
           ) : (
             <div className="space-y-2">
               {topDefects.map(([type, count]) => (

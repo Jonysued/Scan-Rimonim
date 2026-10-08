@@ -9,7 +9,7 @@ import FotoCaptura from "@/components/sesion/FotoCaptura";
 import { Camera, Loader2 } from "lucide-react";
 import normalizeImage from "@/lib/normalizeImage";
 import { useAuth } from "@/lib/AuthContext";
-import { savePhoto } from "@/lib/capture/savePhoto";
+import { savePhoto, samplingSummary } from "@/lib/capture/savePhoto";
 
 export default function NuevaSesion() {
   const navigate = useNavigate();
@@ -124,27 +124,9 @@ export default function NuevaSesion() {
     setFinalizing(true); setError("");
     try {
     const fotosDb = await appClient.entities.Foto.filter({ session_id: sessionId });
-    const allFruits = fotosDb.flatMap((f) => f.fruits || []);
-    const pending = fotosDb.some(f => f.status !== "listo");
-    const fruitCount = allFruits.length;
-    const measured = allFruits.filter(f => Number.isFinite(f.diameter_mm) && f.diameter_mm > 0);
-    const avgDiam = measured.length ? measured.reduce((a,f)=>a+f.diameter_mm,0)/measured.length : null;
-    const pct = (pred) => (fruitCount ? (allFruits.filter(pred).length / fruitCount) * 100 : 0);
-    const redPct = pct((f) => f.color_category === "rojo" || f.color_category === "rojo_oscuro");
-    const crackingPct = pct((f) => (f.defects || []).some((d) => d.type === "cracking"));
-    const sunburnPct = pct((f) => (f.defects || []).some((d) => d.type === "sunburn"));
-    const russetPct = pct((f) => (f.defects || []).some((d) => d.type === "russet"));
-
     await appClient.entities.SesionMuestreo.update(sessionId, {
+      ...samplingSummary(fotosDb),
       ended_at: new Date().toISOString(),
-      status: pending ? "borrador" : "listo",
-      photo_count: fotosDb.length,
-      fruit_count: fruitCount,
-      avg_diameter_mm: avgDiam,
-      red_pct: pending ? null : redPct,
-      cracking_pct: pending ? null : crackingPct,
-      sunburn_pct: pending ? null : sunburnPct,
-      russet_pct: pending ? null : russetPct,
     });
     navigate(`/sesion/${sessionId}`);
     } catch(e) {setError(e.message);} finally {setFinalizing(false);}
