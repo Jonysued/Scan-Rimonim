@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {validatedContour} from "@/lib/capture/contourGeometry";
 import {defectLabels, drawableDefect, defectCoverage} from "@/lib/capture/defectGeometry";
 
-export default function AnnotatedPhoto({ src, fruits = [] }) {
+export default function AnnotatedPhoto({ src, fruits = [], showCoverage = true }) {
   const [dims, setDims] = useState(null);
   const located = fruits.filter(f => f.localization_version === 4 && f.segmentation_model === 'mediapipe-magic-touch-v2' && f.localization_status === 'located' && validatedContour(f.body_contour));
   const defects = fruits.flatMap(f => (f.defects || []).filter(d => defectLabels[d.type]));
@@ -65,7 +65,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
         </svg>
       )}
       </div>
-      {fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
+      {showCoverage && fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
         {fruits.map((f,i) => <div key={i}>{Object.entries(defectLabels).map(([type,label]) => <p key={type}><strong>{label}:</strong> {defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}%` : 'Sin dato'}</p>)}</div>)}
         <p className="mt-1 text-[#9b7f82]">Estimado sobre piel visible.</p>
       </div>}
