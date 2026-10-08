@@ -20,3 +20,9 @@ export function normalizeDefect(d, {width, height}) {
 export function drawableDefect(d) {
   return d.localization_version === 1 && ['located','tentative'].includes(d.localization_status) && d.location_confidence > 0 && d.location_confidence <= 1 && validDefectBox(d.region);
 }
+export function normalizeCoverage(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 ? value : null;
+}
+export function defectCoverage(fruit, type) {
+  return normalizeCoverage(fruit.defect_coverage_pct?.[type] ?? (type === 'russet' ? fruit.russet_coverage_pct : null));
+}
