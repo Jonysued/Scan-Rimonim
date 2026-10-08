@@ -21,3 +21,18 @@ export async function savePhoto(client, foto, sessionId, variedadName, onSaved =
     return {status: 'guardado', photoId: photo.id, storage_uri, analysisError: error.message};
   }
 }
+
+export function samplingSummary(photos) {
+  const pending=photos.some(p=>p.status!=='listo');
+  const fruits=photos.flatMap(p=>p.fruits||[]);
+  const measured=fruits.filter(f=>Number.isFinite(f.diameter_mm)&&f.diameter_mm>0);
+  const pct=pred=>pending||!fruits.length?null:100*fruits.filter(pred).length/fruits.length;
+  return {
+    status:pending?'borrador':'listo',photo_count:photos.length,fruit_count:fruits.length,
+    avg_diameter_mm:measured.length?measured.reduce((sum,f)=>sum+f.diameter_mm,0)/measured.length:null,
+    red_pct:pct(f=>f.color_category==='rojo'||f.color_category==='rojo_oscuro'),
+    cracking_pct:pct(f=>(f.defects||[]).some(d=>d.type==='cracking')),
+    sunburn_pct:pct(f=>(f.defects||[]).some(d=>d.type==='sunburn')),
+    russet_pct:pct(f=>(f.defects||[]).some(d=>d.type==='russet')),
+  };
+}
