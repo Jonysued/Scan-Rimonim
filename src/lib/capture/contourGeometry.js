@@ -2,6 +2,10 @@
 export function validatedContour(points) {
   if (!Array.isArray(points) || points.length < 12 || points.length > 64) return null;
   if (!points.every(p => p && ['x','y'].every(k => Number.isFinite(p[k]) && p[k] >= 0 && p[k] <= 1000))) return null;
+  // Both open and explicitly closed rings describe the same contour.
+  points=points.filter((p,i)=>i===0 || p.x!==points[i-1].x || p.y!==points[i-1].y);
+  if(points[0].x===points.at(-1).x && points[0].y===points.at(-1).y) points=points.slice(0,-1);
+  if(points.length<12) return null;
   const cross = (a,b,c) => (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
   const between = (a,b,c) => Math.min(a.x,b.x)<=c.x && c.x<=Math.max(a.x,b.x) && Math.min(a.y,b.y)<=c.y && c.y<=Math.max(a.y,b.y);
   const intersects = (a,b,c,d) => {
