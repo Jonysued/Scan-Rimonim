@@ -1,29 +1,19 @@
 import React, { useState } from "react";
-import {bodyContour} from "@/lib/capture/bodyContour";
+import {validatedContour} from "@/lib/capture/contourGeometry";
 
 export default function AnnotatedPhoto({ src, fruits = [] }) {
   const [dims, setDims] = useState(null);
-  const [pixels, setPixels] = useState(null);
-  const located = pixels ? fruits.filter(f => f.localization_version === 2 && f.localization_status === 'located')
-    .flatMap(f => {const body=bodyContour(pixels,f);return body?[{...f,...body}]:[];}) : [];
+  const located = fruits.filter(f => f.localization_version === 3 && f.localization_status === 'located' && validatedContour(f.body_contour));
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-[#eee1dc] bg-[#f4e9e5]">
       <img
         src={src}
         alt="Foto de muestreo"
-        crossOrigin="anonymous"
         className="w-full block"
         onLoad={(e) => {
           const img=e.target;
           setDims({ w: img.naturalWidth, h: img.naturalHeight });
-          try {
-            const canvas=document.createElement('canvas');
-            const scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
-            canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
-            const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,canvas.width,canvas.height);
-            setPixels(ctx.getImageData(0,0,canvas.width,canvas.height));
-          } catch {setPixels(null);}
         }}
       />
       {dims && located.length > 0 && (
@@ -32,16 +22,16 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
           className="absolute inset-0 w-full h-full pointer-events-none"
         >
           {located.map((f, i) => {
-            const cx = (f.center_x_pct / 100) * dims.w;
-            const cy = (f.center_y_pct / 100) * dims.h;
-            const rx = (f.radius_pct / 100) * dims.w;
-            const ry = f.radius_y_pct != null ? (f.radius_y_pct / 100) * dims.h : rx;
+            const points=f.body_contour.map(p=>`${p.x*dims.w/1000},${p.y*dims.h/1000}`).join(' ');
+            const left=Math.min(...f.body_contour.map(p=>p.x));
+            const right=Math.max(...f.body_contour.map(p=>p.x));
+            const top=Math.min(...f.body_contour.map(p=>p.y));
             return (
               <g key={i}>
-                <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#4ade80" strokeWidth={Math.max(dims.w / 300, 2)} />
+                <polygon points={points} fill="none" stroke="#4ade80" strokeLinejoin="round" strokeWidth={Math.max(dims.w / 300, 2)} />
                 <text
-                  x={cx}
-                  y={cy - ry - 4}
+                  x={(left+right)*dims.w/2000}
+                  y={Math.max(dims.h*.04,top*dims.h/1000-4)}
                   fill="#166534"
                   fontSize={Math.max(dims.w / 25, 14)}
                   fontWeight="600"
