@@ -40,7 +40,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
                   strokeWidth={Math.max(dims.w / 200, 2)}
                   paintOrder="stroke"
                 >
-                  {Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : "Sin calibre medido"}
+                  {Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status==='experimental' ? `≈${Math.round(f.lidar_estimate.diameter_mm)} mm · experimental` : "Sin calibre medido"}
                 </text>
               </g>
             );
@@ -48,6 +48,8 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
         </svg>
       )}
       {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno no confirmado · volver a analizar</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Estimación LiDAR del cuerpo aproximado como esfera. Pendiente de comparar con calibre físico.</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Profundidad insuficiente para estimar el diámetro. Acercá la fruta, mejorá la luz y volvé a capturar.</p>}
     </div>
   );
 }
