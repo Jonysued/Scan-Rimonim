@@ -5,7 +5,7 @@ function model() {
   if(!modelPromise) modelPromise=(async()=>{
     const files=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0/wasm');
     return InteractiveSegmenter.createFromOptions(files,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/interactive_segmenter_v2/magic_touch/int8/latest/interactive_segmentation.task',delegate:'CPU'}});
-  })();
+  })().catch(error=>{modelPromise=undefined;throw error;});
   return modelPromise;
 }
 self.onmessage=async ({data:{id,bitmap,seed}})=>{
@@ -17,6 +17,10 @@ self.onmessage=async ({data:{id,bitmap,seed}})=>{
     mask=segmenter.segment([{brushMode:1,point:[seed],isCompleted:true}]);
     const points=maskContour(mask.getAsFloat32Array(),mask.width,mask.height,seed);
     self.postMessage({id,points});
-  } catch { self.postMessage({id,error:'No se pudo ejecutar la segmentación de la fruta en este dispositivo.'}); }
+  } catch(error) {
+    // The worker only has model URLs and pixels, never credentials or signed URLs.
+    console.error('Segmentación local:',error instanceof Error?error.message:'Error del modelo');
+    self.postMessage({id,error:'No se pudo ejecutar la segmentación de la fruta en este dispositivo.'});
+  }
   finally {mask?.close();bitmap.close();}
 };
