@@ -30,7 +30,7 @@ export function samplingSummary(photos) {
   return {
     status:pending?'borrador':'listo',photo_count:photos.length,fruit_count:fruits.length,
     avg_diameter_mm:measured.length?measured.reduce((sum,f)=>sum+f.diameter_mm,0)/measured.length:null,
-    red_pct:pct(f=>f.color_category==='rojo'||f.color_category==='rojo_oscuro'),
+    red_pct:fruits.some(f=>!['verde','rosado','rojo','rojo_oscuro'].includes(f.color_category))?null:pct(f=>f.color_category==='rojo'||f.color_category==='rojo_oscuro'),
     cracking_pct:pct(f=>(f.defects||[]).some(d=>d.type==='cracking')),
     sunburn_pct:pct(f=>(f.defects||[]).some(d=>d.type==='sunburn')),
     russet_pct:pct(f=>(f.defects||[]).some(d=>d.type==='russet')),
