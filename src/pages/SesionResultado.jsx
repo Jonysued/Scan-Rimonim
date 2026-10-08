@@ -6,13 +6,18 @@ import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
 import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
 import moment from "moment";
+import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
+import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
   const { id } = useParams();
+  const {user}=useAuth();
   const [sesion, setSesion] = useState(null);
   const [bloque, setBloque] = useState(null);
   const [fotos, setFotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analyzing,setAnalyzing]=useState(null);
+  const [error,setError]=useState("");
 
   useEffect(() => {
     (async () => {
@@ -36,10 +41,24 @@ export default function SesionResultado() {
       );
       setFotos(withUrls);
       setLoading(false);
-    })();
+    })().catch(e=>{setError(e.message);setLoading(false);});
   }, [id]);
 
+  async function retryAnalysis(foto) {
+    if(analyzing)return;
+    setAnalyzing(foto.id);setError("");
+    try {
+      const result=await savePhoto(appClient,{photoId:foto.id,storage_uri:foto.storage_uri},id);
+      const updated=await appClient.entities.Foto.filter({session_id:id});
+      setFotos(prev=>updated.map(f=>({...f,signed_url:prev.find(p=>p.id===f.id)?.signed_url})));
+      const summary=samplingSummary(updated);
+      setSesion(await appClient.entities.SesionMuestreo.update(id,summary));
+      if(result.analysisError)setError(result.analysisError);
+    } catch(e){setError(e.message);} finally{setAnalyzing(null);}
+  }
+
   if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
+  if(!sesion)return <AppShell><p role="alert" className="p-6">{error||"No se pudo cargar el muestreo."}</p></AppShell>;
 
   const allFruits = fotos.flatMap((f) => f.fruits || []);
   const pending = fotos.some(f => f.status !== "listo");
@@ -53,6 +72,7 @@ export default function SesionResultado() {
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
+        {error&&<p role="alert" className="p-3 mb-4 rounded-xl bg-red-50 text-red-800">{error}</p>}
         <Link to={`/bloque/${bloque?.id}`} className="flex items-center gap-1.5 text-sm text-[#9b7f82] mb-4 hover:text-[#7a1f33]">
           <ArrowLeft className="w-4 h-4" /> {bloque?.name}
         </Link>
@@ -60,7 +80,7 @@ export default function SesionResultado() {
         <div className="bg-white rounded-2xl border border-[#eee1dc] p-6 mb-5">
           <p className="text-sm text-[#9b7f82] mb-1">{pending ? "Muestreo guardado · análisis pendiente" : "Resultado del muestreo"}</p>
           <p className="text-4xl font-semibold tracking-tight text-[#2a1a1d]">{pending ? `${fotos.length} fotos guardadas` : `${sesion.fruit_count || 0} frutos`}</p>
-          {pending && <p className="text-sm text-amber-800 mt-3">Las fotos están guardadas. El análisis todavía no está completo; no hay resultados validados de calibre, color o defectos.</p>}
+          {pending && <p className="text-sm text-amber-800 mt-3">Las fotos están guardadas, pero el análisis no se completó. No hay un análisis ejecutándose en segundo plano. Usá Reintentar análisis debajo de cada foto.</p>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -124,6 +144,7 @@ export default function SesionResultado() {
                   <p className="text-[11px] text-[#9b7f82] mt-1.5">
                     {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.status !== "listo" ? "Guardada · análisis pendiente" : `${f.fruit_count_estimate || 0} frutos`}
                   </p>
+                  {f.status!=="listo"&&(user?.role==='admin'||f.created_by===user?.id)&&<button disabled={Boolean(analyzing)} onClick={()=>retryAnalysis(f)} className="text-sm underline mt-2 disabled:opacity-50">{analyzing===f.id?"Analizando con OpenAI…":"Reintentar análisis"}</button>}
                 </div>
               ))}
             </div>
