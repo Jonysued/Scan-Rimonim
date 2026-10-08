@@ -1,15 +1,11 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {framing} from '@/lib/capture/framing';
 
 export default function GuidedCamera({onCapture,onClose}){
   const video=useRef(null),stream=useRef(null),capturing=useRef(false);
   const callbacks=useRef({onCapture,onClose});
-  const latestGuide=useRef({status:'search'});
   const active=useRef(null);
   const phoneCamera=useRef(null);
-  const [frame,setFrame]=useState({width:0,height:0});
   const [error,setError]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false);
-  const [guide,setGuide]=useState({status:'search',message:'Abriendo cámara…'});
   useEffect(()=>{callbacks.current={onCapture,onClose};},[onCapture,onClose]);
 
   async function take(automatic=false){
@@ -25,7 +21,7 @@ export default function GuidedCamera({onCapture,onClose}){
       if(!session.live)return;
       if(!blob)throw new Error('No se pudo guardar la foto. Tocá Tomar foto para reintentar.');
       callbacks.current.onCapture(new File([blob],'captura.jpg',{type:'image/jpeg'}),{
-        method:'web-framing',distanceM:null,guidance:latestGuide.current.status,automatic,
+        method:'web-camera',distanceM:null,guidance:'manual',automatic,
       });
       callbacks.current.onClose();
     }catch(e){
@@ -34,7 +30,7 @@ export default function GuidedCamera({onCapture,onClose}){
   }
 
   useEffect(()=>{
-    const session={live:true};active.current=session;let timer;
+    const session={live:true};active.current=session;
     async function open(){
       try{
         if(!navigator.mediaDevices?.getUserMedia)throw new Error('La cámara requiere conexión segura HTTPS.');
@@ -43,41 +39,20 @@ export default function GuidedCamera({onCapture,onClose}){
         stream.current=s;video.current.srcObject=s;await video.current.play();
         if(!session.live)return;
         setReady(true);
-        const canvas=document.createElement('canvas');
-        const ctx=canvas.getContext('2d',{willReadFrequently:true});
-        timer=setInterval(()=>{
-          if(!session.live||capturing.current||!video.current?.videoWidth)return;
-          const v=video.current;
-          const displayScale=Math.min(v.clientWidth/v.videoWidth,v.clientHeight/v.videoHeight);
-          setFrame({width:v.videoWidth*displayScale,height:v.videoHeight*displayScale});
-          const scale=160/Math.max(v.videoWidth,v.videoHeight);
-          canvas.width=Math.max(1,Math.round(video.current.videoWidth*scale));
-          canvas.height=Math.max(1,Math.round(video.current.videoHeight*scale));
-          ctx.drawImage(video.current,0,0,canvas.width,canvas.height);
-          let next;
-          try{next=framing(ctx.getImageData(0,0,canvas.width,canvas.height));}
-          catch{next={status:'search',message:'Guía no disponible. Podés tomar la foto.'};}
-          latestGuide.current=next;setGuide(next);
-
-        },250);
       }catch(e){if(session.live)setError(e.name==='NotAllowedError'?'Permití el acceso a la cámara para continuar.':e.message);}
     }
     void open();
-    return()=>{session.live=false;clearInterval(timer);stream.current?.getTracks().forEach(t=>t.stop());};
+    return()=>{session.live=false;stream.current?.getTracks().forEach(t=>t.stop());};
   },[]);
 
   return <div role="dialog" aria-modal="true" aria-label="Captura guiada" className="fixed inset-0 z-50 bg-black text-white flex flex-col" style={{paddingTop:'env(safe-area-inset-top)',paddingBottom:'env(safe-area-inset-bottom)'}}>
     <div className="p-4 flex justify-between"><span>Una fruta por foto</span><button onClick={onClose}>Cerrar</button></div>
     <div className="relative flex-1 min-h-0 flex items-center justify-center">
       <video ref={video} muted playsInline className="w-full h-full object-contain"/>
-      <div className="pointer-events-none absolute flex items-center justify-center" style={{width:frame.width,height:frame.height}}>
-        <div style={{width:Math.min(frame.width,frame.height)*.52,aspectRatio:'1'}} className="rounded-full border-2 border-white/70"/>
-        {guide.box&&<div className={`absolute border-2 rounded-lg ${guide.status==='ready'?'border-green-400':'border-amber-400'}`} style={{left:guide.box.x*100+'%',top:guide.box.y*100+'%',width:guide.box.width*100+'%',height:guide.box.height*100+'%'}}/>}
-      </div>
     </div>
     <div className="p-5 text-center space-y-3">
-      <p aria-live="polite">{error||(busy?'Guardando foto…':guide.status==='search'&&ready?'Sin contorno detectado. Podés tomar la foto igual.':guide.message)}</p>
-      <p className="text-sm text-gray-300">Mostrá una fruta completa y enfocada. No necesitás esperar que el recuadro se ponga verde.</p>
+      <p aria-live="polite">{error||(busy?'Guardando foto…':ready?'Mostrá una fruta completa y enfocada.':'Abriendo cámara…')}</p>
+      <p className="text-sm text-amber-200">Distancia: no disponible en esta cámara web. Esta foto no permite medir calibre en milímetros.</p>
       <button disabled={busy} onClick={()=>take(false)} className="rounded-full bg-white text-black px-8 py-3 disabled:opacity-40">{busy?'Capturando…':'Tomar foto'}</button>
       <button disabled={busy} onClick={()=>phoneCamera.current?.click()} className="block mx-auto text-sm underline">Usar cámara del teléfono</button>
       <input ref={phoneCamera} type="file" accept="image/*" capture="environment" className="hidden" onChange={e=>{
@@ -85,7 +60,6 @@ export default function GuidedCamera({onCapture,onClose}){
         callbacks.current.onCapture(file,{method:'phone-camera',distanceM:null,guidance:'manual',automatic:false});
         callbacks.current.onClose();
       }}/>
-      <p className="text-xs text-gray-400">Guía visual de encuadre; no mide centímetros.</p>
     </div>
   </div>;
 }
