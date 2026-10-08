@@ -15,9 +15,9 @@ Aplicación independiente para registrar muestreos de granadas. React/Vite, Supa
 
 Configuración contiene variedades, fincas y lotes. Nuevo muestreo exige elegir un lote antes de capturar. Una sesión conserva ese contexto. Las fotos usan un bucket privado y enlaces temporales; una foto fallida puede reintentarse o descartarse antes de finalizar. El análisis visual estima color y defectos, y devuelve como máximo una fruta central; requiere revisión humana.
 
-La web orienta por tamaño y posición del objeto rojizo en el encuadre: acercarse, alejarse o centrar. No calcula distancia física. El detector es una heurística sensible a iluminación y color.
+La web mantiene el botón Tomar foto, sin círculo ni bloqueo por detección. Pide una fruta completa y enfocada. No calcula distancia física. OpenAI analiza la foto después de guardarla; la clave OPENAI_API_KEY se configura sólo en el servidor. Si el análisis falla, la foto se conserva y puede reintentarse desde el muestreo.
 
-`mobile/` prepara una app iOS nativa con captura frontal TrueDepth, mensajes de voz y captura tras mantener aproximadamente 40 cm. La distancia corresponde a la superficie central, que puede no ser la fruta. Es experimental y necesita compilación y validación en el iPhone real antes de TestFlight. No funciona en Expo Go. Ver `mobile/README.md`.
+`mobile/` está conectado a https://scan-rimonim.vercel.app y prepara una app iOS nativa con captura frontal TrueDepth, mensajes de voz y captura tras mantener aproximadamente 40 cm. La distancia corresponde a la superficie central, que puede no ser la fruta. Es experimental y necesita compilación y validación en el iPhone real antes de TestFlight. No funciona en Expo Go. Ver `mobile/README.md`.
 
 No se informa calibre en milímetros sin una escala y geometría validadas. Los valores ausentes se excluyen de promedios, gráficos y alertas de calibre.
 
