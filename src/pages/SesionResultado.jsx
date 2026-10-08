@@ -81,6 +81,10 @@ export default function SesionResultado() {
 
   const expandedPhoto = fotos.find(f => f.id === expandedPhotoId);
   const colorLabels = {verde: 'Verde', rosado: 'Rosado', rojo: 'Rojo', rojo_oscuro: 'Rojo oscuro'};
+  const crackingSeverity = fruit => {
+    const severities = (fruit.defects || []).filter(d => d.type === 'cracking').map(d => d.severity);
+    return ['grave', 'media', 'leve'].find(level => severities.includes(level));
+  };
   const percent = value => Number.isFinite(value) ? `${Math.round(value)}%` : '—';
   const fruitValues = (foto, render) => (foto.fruits || []).length
     ? foto.fruits.map((fruit, index) => <div key={index} className="py-0.5">{foto.fruits.length > 1 && <span className="text-[#9b7f82]">{index + 1}. </span>}{render(fruit)}</div>)
@@ -133,7 +137,7 @@ export default function SesionResultado() {
                   <td className="px-3 py-2">{fruitValues(foto, f => Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status === 'experimental' && Number.isFinite(f.lidar_estimate.diameter_mm) ? <span title="LiDAR experimental">≈{Math.round(f.lidar_estimate.diameter_mm)} mm*</span> : '—')}</td>
                   <td className="px-3 py-2">{fruitValues(foto, f => colorLabels[f.color_category] || '—')}</td>
                   <td className="px-3 py-2">{fruitValues(foto, f => percent(f.red_coverage_pct))}</td>
-                  {Object.keys(defectLabels).map(type => <td key={type} className="px-3 py-2">{fruitValues(foto, f => percent(defectCoverage(f, type)))}</td>)}
+                  {Object.keys(defectLabels).map(type => <td key={type} className="px-3 py-2">{fruitValues(foto, f => <>{percent(defectCoverage(f, type))}{type === 'cracking' && crackingSeverity(f) && <span className="ml-1 text-xs text-[#9b7f82]">· {crackingSeverity(f)}</span>}</>)}</td>)}
                   <td className="px-3 py-2">
                     <div className="flex flex-col items-start gap-1">
                       {foto.status !== 'listo' && <span className="text-xs text-amber-800">Pendiente</span>}
