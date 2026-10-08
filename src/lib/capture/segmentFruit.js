@@ -8,7 +8,8 @@ export async function segmentFruit(client,storage_uri,seed) {
   if(!response.ok) throw new Error('No se pudo abrir la foto para detectar el contorno.');
   const bitmap=await createImageBitmap(await response.blob());
   if(!worker) {
-    worker=new Worker(new URL('./fruitSegmentation.worker.js',import.meta.url),{type:'module'});
+    // Classic bundled worker supports MediaPipe's WASM importScripts loader.
+    worker=new Worker(new URL('./fruitSegmentation.worker.js',import.meta.url));
     worker.onmessage=({data})=>{
       const request=pending.get(data.id);if(!request)return;
       pending.delete(data.id);clearTimeout(request.timer);
