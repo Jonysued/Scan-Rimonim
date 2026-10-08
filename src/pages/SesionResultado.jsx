@@ -49,7 +49,7 @@ export default function SesionResultado() {
     if(analyzing)return;
     setAnalyzing(foto.id);setError("");
     try {
-      const result=await savePhoto(appClient,{photoId:foto.id,storage_uri:foto.storage_uri},id);
+      const result=await savePhoto(appClient,{photoId:foto.id,storage_uri:foto.storage_uri,metadata:foto.capture_metadata},id);
       const updated=await appClient.entities.Foto.filter({session_id:id});
       setFotos(prev=>updated.map(f=>({...f,signed_url:prev.find(p=>p.id===f.id)?.signed_url})));
       const summary=samplingSummary(updated);
