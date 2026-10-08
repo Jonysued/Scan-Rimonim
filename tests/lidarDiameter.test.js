@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {estimateLidarDiameter} from '../src/lib/capture/lidarDiameter.js';
+import {savePhoto,samplingSummary} from '../src/lib/capture/savePhoto.js';
 
 function sphere({radius=40,z=500,confidenceLevel=2,portrait=true}={}) {
   const w=portrait?192:256,h=portrait?256:192,fx=220,fy=220,cx=w/2,cy=h/2;
@@ -38,4 +39,15 @@ test('background outside the fruit does not become part of its sphere',()=>{
   const {metadata,contour}=sphere();
   metadata.depth_mm=metadata.depth_mm.map(z=>z===1000?3000:z);
   assert.equal(estimateLidarDiameter(metadata,contour).status,'experimental');
+});
+test('saving keeps experimental diameter separate from validated calibre summaries',async()=>{
+  const {metadata,contour}=sphere();let saved;
+  const client={integrations:{Core:{UploadPrivateFile:async()=>({file_uri:'owner/lidar.jpg'})}},
+    entities:{Foto:{create:async value=>{saved=value;return {id:'photo'};},update:async(_,value)=>{saved={...saved,...value};}}},
+    functions:{invoke:async()=>({data:{fruits:[{localization_status:'located',body_contour:contour,color_category:'rojo'}]}})}};
+  const result=await savePhoto(client,{file:{},metadata},'session');
+  assert.equal(result.status,'listo');assert.equal(saved.capture_metadata,metadata);
+  assert.equal(saved.fruits[0].lidar_estimate.status,'experimental');
+  assert.equal(saved.fruits[0].diameter_mm,null);assert.equal(saved.avg_diameter_mm,null);
+  assert.equal(samplingSummary([saved]).avg_diameter_mm,null);
 });
