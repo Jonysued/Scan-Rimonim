@@ -11,12 +11,12 @@ export function normalizeDefect(d, {width, height}) {
   const b = d.region;
   const locationConfidence = d.location_confidence;
   let region = null;
-  if (b && ['left','top','right','bottom'].every(k=>Number.isFinite(b[k])) && width > 0 && height > 0 && Number.isFinite(locationConfidence) && locationConfidence >= .85 && locationConfidence <= 1) {
+  if (b && ['left','top','right','bottom'].every(k=>Number.isFinite(b[k])) && width > 0 && height > 0 && Number.isFinite(locationConfidence) && locationConfidence > 0 && locationConfidence <= 1) {
     region = validDefectBox({left:b.left/width*1000, right:b.right/width*1000, top:b.top/height*1000, bottom:b.bottom/height*1000});
   }
-  return {type:d.type, severity:d.severity, confidence, region, location_confidence:region ? locationConfidence : null, localization_status:region ? 'located' : 'uncertain', localization_version:1};
+  return {type:d.type, severity:d.severity, confidence, region, location_confidence:region ? locationConfidence : null, localization_status:region ? locationConfidence >= .85 ? 'located' : 'tentative' : 'uncertain', localization_version:1};
 }
 
 export function drawableDefect(d) {
-  return d.localization_version === 1 && d.localization_status === 'located' && d.location_confidence >= .85 && d.location_confidence <= 1 && validDefectBox(d.region);
+  return d.localization_version === 1 && ['located','tentative'].includes(d.localization_status) && d.location_confidence > 0 && d.location_confidence <= 1 && validDefectBox(d.region);
 }
