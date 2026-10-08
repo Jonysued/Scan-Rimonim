@@ -1,5 +1,6 @@
 // Persist the image record before optional analysis. Retry updates the same record.
 import {segmentFruit} from './segmentFruit.js';
+import {estimateLidarDiameter} from './lidarDiameter.js';
 export async function savePhoto(client, foto, sessionId, variedadName, onSaved = () => {}) {
   const storage_uri = foto.storage_uri || (await client.integrations.Core.UploadPrivateFile({file: foto.file})).file_uri;
   foto.storage_uri = storage_uri;
@@ -20,6 +21,12 @@ export async function savePhoto(client, foto, sessionId, variedadName, onSaved =
         const points=await segmentFruit(client,storage_uri,fruit.segmentation_seed);
         Object.assign(fruit,{localization_status:points?'located':'uncertain',body_contour:points,segmentation_model:'mediapipe-magic-touch-v2'});
       } catch(error) {fruit.localization_status='uncertain';segmentationError=error.message;}
+    }
+    for(const fruit of fruits) {
+      fruit.lidar_estimate=estimateLidarDiameter(foto.metadata,fruit.body_contour);
+      // Experimental results never enter validated calibre aggregates.
+      fruit.diameter_mm=null;
+      fruit.measurement_status='unmeasured';
     }
     const values = {status: 'listo', fruits, fruit_count_estimate: data.fruit_count_estimate ?? fruits.length};
     await client.entities.Foto.update(photo.id, values);
