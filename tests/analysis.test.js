@@ -129,3 +129,10 @@ test('russet surface is fruit-level coverage, preserves zero and rejects unknown
     assert.equal(res.data.fruits[0].defects.length,2);
   }
 });
+
+test('each defect has independent visible coverage and missing values are never fabricated',async()=>{
+  const {res}=await run({fruits:[{defect_coverage_pct:{russet:18,sunburn:0,cracking:1.5}}]});
+  assert.deepEqual(res.data.fruits[0].defect_coverage_pct,{russet:18,sunburn:0,cracking:1.5});
+  const {res:unknown}=await run({fruits:[{defect_coverage_pct:{russet:101,sunburn:'20',cracking:null}}]});
+  assert.deepEqual(unknown.data.fruits[0].defect_coverage_pct,{russet:null,sunburn:null,cracking:null});
+});
