@@ -66,17 +66,17 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
       )}
       </div>
       {fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
-        {fruits.map((f,i) => <div key={i}>{Object.entries(defectLabels).map(([type,label]) => <p key={type}><strong>{label}:</strong> {defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}% de piel visible (estimado)` : 'Sin estimación · volver a analizar'}</p>)}</div>)}
-        <p className="mt-1 text-[#9b7f82]">Suma de las zonas afectadas sobre toda la piel visible. La cara oculta no se evalúa.</p>
+        {fruits.map((f,i) => <div key={i}>{Object.entries(defectLabels).map(([type,label]) => <p key={type}><strong>{label}:</strong> {defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}%` : 'Sin dato'}</p>)}</div>)}
+        <p className="mt-1 text-[#9b7f82]">Estimado sobre piel visible.</p>
       </div>}
       {defects.length > 0 && <div className="px-3 py-2 space-y-1 text-xs text-[#63343b]">
-        <p className="font-medium">Defectos detectados por OpenAI · zonas aproximadas</p>
-        {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{d.localization_status==='tentative' && ' · ubicación incierta (línea punteada)'}{!drawableDefect(d) && ' · ubicación no confirmada'}</p>)}
-        {defects.some(d=>!drawableDefect(d)) && <p className="text-[#9b7f82]">Volvé a analizar para intentar ubicar los defectos sobre la foto.</p>}
+        <p className="font-medium">Zonas detectadas</p>
+        {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{d.localization_status==='tentative' && ' · aprox.'}{!drawableDefect(d) && ' · sin ubicar'}</p>)}
+        {defects.some(d=>!drawableDefect(d)) && <p className="text-[#9b7f82]">Reanalizá para ubicar las zonas.</p>}
       </div>}
-      {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno no confirmado · volver a analizar</p>}
-      {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Estimación LiDAR del cuerpo aproximado como esfera. Pendiente de comparar con calibre físico.</p>}
-      {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Profundidad insuficiente para estimar el diámetro. Acercá la fruta, mejorá la luz y volvé a capturar.</p>}
+      {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno sin confirmar.</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">LiDAR experimental · verificar con calibre.</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Sin diámetro: acercá la fruta y repetí la foto.</p>}
     </div>
   );
 }

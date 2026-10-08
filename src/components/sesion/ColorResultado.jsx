@@ -6,8 +6,8 @@ export default function ColorResultado({ fruits = [] }) {
   if (!fruits.length) return null;
   return <div className="mt-2 space-y-1 text-xs text-[#5c4448]">
     {fruits.map((fruit, index) => <div key={index}>
-      <p><strong>Color según OpenAI:</strong> {labels[fruit.color_category] || "Sin clasificación"}</p>
-      <p>Cobertura roja visible: {Number.isFinite(fruit.red_coverage_pct) ? `${Math.round(fruit.red_coverage_pct)}% (estimada)` : "Sin estimación; volver a analizar"}</p>
+      <p><strong>Color:</strong> {labels[fruit.color_category] || "Sin clasificación"}</p>
+      <p>Rojo: {Number.isFinite(fruit.red_coverage_pct) ? `${Math.round(fruit.red_coverage_pct)}%` : "Sin dato"}</p>
     </div>)}
   </div>;
 }
