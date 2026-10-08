@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
 import ColorResultado from "@/components/sesion/ColorResultado";
-import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
+import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera, Trash2 } from "lucide-react";
+import {AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel} from "@/components/ui/alert-dialog";
+import {toast} from "sonner";
 import moment from "moment";
 import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
 import {defectLabels,defectCoverage} from "@/lib/capture/defectGeometry";
@@ -13,6 +15,9 @@ import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const {user}=useAuth();
   const [sesion, setSesion] = useState(null);
   const [bloque, setBloque] = useState(null);
@@ -59,6 +64,18 @@ export default function SesionResultado() {
     } catch(e){setError(e.message);} finally{setAnalyzing(null);}
   }
 
+  async function deleteSample() {
+    if (user?.role !== 'admin' || deleting || analyzing) return;
+    setDeleting(true); setError('');
+    try {
+      const result = await appClient.entities.SesionMuestreo.delete(id);
+      if (result.cleanupWarning) toast.warning('Muestra eliminada. Algunas fotos almacenadas no pudieron borrarse.');
+      else toast.success('Muestra eliminada.');
+      navigate(bloque?.id ? `/bloque/${bloque.id}` : '/', {replace:true});
+    } catch (e) { setError(e.message || 'No se pudo eliminar la muestra.'); }
+    finally { setDeleting(false); setDeleteOpen(false); }
+  }
+
   if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
   if(!sesion)return <AppShell><p role="alert" className="p-6">{error||"No se pudo cargar el muestreo."}</p></AppShell>;
 
@@ -79,6 +96,22 @@ export default function SesionResultado() {
         <Link to={`/bloque/${bloque?.id}`} className="flex items-center gap-1.5 text-sm text-[#9b7f82] mb-4 hover:text-[#7a1f33]">
           <ArrowLeft className="w-4 h-4" /> {bloque?.name}
         </Link>
+
+        {user?.role === 'admin' && <div className="flex justify-end mb-4">
+          <button type="button" disabled={Boolean(analyzing) || deleting} onClick={()=>setDeleteOpen(true)} className="flex items-center gap-2 text-sm text-red-700 border border-red-200 rounded-lg px-3 py-2 disabled:opacity-50"><Trash2 className="w-4 h-4" />Eliminar muestra</button>
+        </div>}
+        <AlertDialog open={deleteOpen} onOpenChange={open=>{if(!deleting)setDeleteOpen(open);}}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar esta muestra?</AlertDialogTitle>
+              <AlertDialogDescription>Se eliminará el muestreo de {bloque?.name || 'este lote'} del {moment(sesion.started_at || sesion.created_date).format('DD/MM/YYYY HH:mm')}, con sus {fotos.length} fotos y resultados. Dejará de formar parte de los indicadores. Esta acción no se puede deshacer.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <button type="button" disabled={deleting} onClick={deleteSample} className="bg-red-700 text-white rounded-md px-4 py-2 text-sm disabled:opacity-50">{deleting ? 'Eliminando…' : 'Eliminar definitivamente'}</button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="bg-white rounded-2xl border border-[#eee1dc] p-6 mb-5">
           <p className="text-sm text-[#9b7f82] mb-1">{pending ? "Muestreo guardado · análisis pendiente" : "Resultado del muestreo"}</p>
