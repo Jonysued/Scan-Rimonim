@@ -116,7 +116,7 @@ export default function SesionResultado() {
         <div className="bg-white rounded-2xl border border-[#eee1dc] p-6 mb-5">
           <p className="text-sm text-[#9b7f82] mb-1">{pending ? "Muestreo guardado · análisis pendiente" : "Resultado del muestreo"}</p>
           <p className="text-4xl font-semibold tracking-tight text-[#2a1a1d]">{pending ? `${fotos.length} fotos guardadas` : `${sesion.fruit_count || 0} frutos`}</p>
-          {pending && <p className="text-sm text-amber-800 mt-3">Las fotos están guardadas, pero el análisis no se completó. No hay un análisis ejecutándose en segundo plano. Usá Reintentar análisis debajo de cada foto.</p>}
+          {pending && <p className="text-sm text-amber-800 mt-3">Las fotos están guardadas, pero el análisis no se completó. No hay un análisis ejecutándose en segundo plano. Usá Reintentar debajo de cada foto.</p>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -195,7 +195,7 @@ export default function SesionResultado() {
                     {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.status !== "listo" ? "Guardada · análisis pendiente" : `${f.fruit_count_estimate || 0} frutos`}
                   </p>
                   {f.status === "listo" && <ColorResultado fruits={f.fruits || []} />}
-                  {(user?.role==='admin'||f.created_by===user?.id)&&<button disabled={Boolean(analyzing)} onClick={()=>retryAnalysis(f)} className="text-sm underline mt-2 disabled:opacity-50">{analyzing===f.id?"Analizando con OpenAI…":f.status === "listo" ? "Volver a analizar con OpenAI" : "Reintentar análisis"}</button>}
+                  {(user?.role==='admin'||f.created_by===user?.id)&&<button disabled={Boolean(analyzing)} onClick={()=>retryAnalysis(f)} className="text-sm underline mt-2 disabled:opacity-50">{analyzing===f.id?"Analizando…":f.status === "listo" ? "Reanalizar" : "Reintentar"}</button>}
                 </div>
               ))}
             </div>
