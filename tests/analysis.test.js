@@ -54,3 +54,19 @@ test('retry summary reports missing analysis and missing scale without zero meas
   const s=samplingSummary([{status:'listo',fruits:[{color_category:'rojo',diameter_mm:null}]}]);
   assert.equal(s.status,'listo');assert.equal(s.red_pct,100);assert.equal(s.avg_diameter_mm,null);
 });
+
+test('visible red coverage preserves zero and never substitutes missing values',async()=>{
+  for(const [input,expected] of [[0,0],[75,75],[null,null],[undefined,null],[101,null],["75",null]]){
+    const {res}=await run({fruits:[{box_2d:[100,200,800,900],red_coverage_pct:input}]});
+    assert.equal(res.data.fruits[0].red_coverage_pct,expected);
+    assert.equal(res.data.fruits[0].color_analysis_version,2);
+    assert.equal(res.data.fruits[0].diameter_mm,null);
+  }
+});
+
+test('missing color is unknown rather than pink or zero intensity',async()=>{
+  const {res}=await run({fruits:[{box_2d:[100,200,800,900]}]});
+  assert.equal(res.data.fruits[0].color_category,null);
+  assert.equal(res.data.fruits[0].color_score,null);
+  assert.equal(samplingSummary([{status:'listo',fruits:res.data.fruits}]).red_pct,null);
+});
