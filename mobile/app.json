@@ -3,6 +3,7 @@
     "name": "Scan Rimonim",
     "slug": "scan-rimonim",
     "version": "1.0.0",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "ios": {
       "bundleIdentifier": "ar.com.rimonim.scan",
