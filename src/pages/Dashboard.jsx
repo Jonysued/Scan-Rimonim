@@ -36,9 +36,10 @@ export default function Dashboard() {
   const hoy = sesiones.filter((s) => moment(s.started_at).isSame(moment(), "day"));
   const listas = sesiones.filter((s) => s.status === "listo");
   const totalFrutos = listas.reduce((acc, s) => acc + (s.fruit_count || 0), 0);
-  const avgRajado = listas.length
-    ? listas.reduce((acc, s) => acc + (s.cracking_pct || 0), 0) / listas.length
-    : 0;
+  const evaluadas = listas.filter(s => s.fruit_count > 0 && Number.isFinite(s.cracking_pct));
+  const avgRajado = evaluadas.length
+    ? evaluadas.reduce((acc, s) => acc + s.cracking_pct, 0) / evaluadas.length
+    : null;
   const avgCalibre = measuredMean(listas.map(s => s.avg_diameter_mm));
 
   const alertas = [];
@@ -76,7 +77,7 @@ export default function Dashboard() {
               <KpiCard label="Frutos medidos" value={totalFrutos.toLocaleString()} icon={Apple} />
               <KpiCard
                 label="Rajado promedio"
-                value={avgRajado.toFixed(1)}
+                value={avgRajado?.toFixed(1) ?? "—"}
                 suffix="%"
                 icon={AlertTriangle}
                 tone={avgRajado > 10 ? "warn" : "good"}

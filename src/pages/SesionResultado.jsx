@@ -4,6 +4,7 @@ import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
+import ColorResultado from "@/components/sesion/ColorResultado";
 import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
 import moment from "moment";
 import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
@@ -98,8 +99,15 @@ export default function SesionResultado() {
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
             <Droplets className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
             <p className="text-lg font-semibold text-[#2a1a1d]">{pending || !hasFruits || sesion.red_pct == null ? "—" : `${sesion.red_pct.toFixed(0)}%`}</p>
-            <p className="text-[11px] text-[#9b7f82]">Rojo</p>
+            <p className="text-[11px] text-[#9b7f82]">Frutos rojos</p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mb-5">
+          <p className="text-sm font-semibold text-[#2a1a1d]">Cobertura roja de la cara visible</p>
+          <p className="text-sm text-[#9b7f82] mt-2">Estimación visual de OpenAI; corresponde a la cara fotografiada y depende de la iluminación. Las fotos anteriores necesitan un nuevo análisis para obtener este dato.</p>
+          {allFruits.map((f, i) => <p key={i} className="text-sm mt-2">Fruta {i + 1}: {Number.isFinite(f.red_coverage_pct) ? `${Math.round(f.red_coverage_pct)}% de piel visible roja` : "Sin cobertura estimada"} · {{verde:"Verde",rosado:"Rosado",rojo:"Rojo",rojo_oscuro:"Rojo oscuro"}[f.color_category] || "Sin categoría"}</p>)}
+          {!allFruits.length && <p className="text-sm mt-2">Sin frutas analizadas.</p>}
         </div>
 
         <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mb-5">
@@ -145,7 +153,8 @@ export default function SesionResultado() {
                   <p className="text-[11px] text-[#9b7f82] mt-1.5">
                     {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.status !== "listo" ? "Guardada · análisis pendiente" : `${f.fruit_count_estimate || 0} frutos`}
                   </p>
-                  {f.status!=="listo"&&(user?.role==='admin'||f.created_by===user?.id)&&<button disabled={Boolean(analyzing)} onClick={()=>retryAnalysis(f)} className="text-sm underline mt-2 disabled:opacity-50">{analyzing===f.id?"Analizando con OpenAI…":"Reintentar análisis"}</button>}
+                  {f.status === "listo" && <ColorResultado fruits={f.fruits || []} />}
+                  {(user?.role==='admin'||f.created_by===user?.id)&&<button disabled={Boolean(analyzing)} onClick={()=>retryAnalysis(f)} className="text-sm underline mt-2 disabled:opacity-50">{analyzing===f.id?"Analizando con OpenAI…":f.status === "listo" ? "Volver a analizar con OpenAI" : "Reintentar análisis"}</button>}
                 </div>
               ))}
             </div>
