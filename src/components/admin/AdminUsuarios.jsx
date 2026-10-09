@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { UserPlus, Loader2 } from "lucide-react";
 
 const PERFILES = [
@@ -15,18 +15,36 @@ export default function AdminUsuarios() {
   const [perfil, setPerfil] = useState("muestreador");
   const [invitando, setInvitando] = useState(false);
   const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [perfilError, setPerfilError] = useState("");
+  const [perfilMensaje, setPerfilMensaje] = useState("");
 
   const refresh = async () => {
-    const u = await base44.entities.User.list();
-    setUsers(u);
-    setLoading(false);
+    try {
+      const u = await appClient.entities.User.list();
+      setUsers(u);
+    } catch (err) {
+      setPerfilError(err.message || "No se pudieron cargar los usuarios.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { refresh(); }, []);
 
   const cambiarPerfil = async (id, role) => {
-    await base44.entities.User.update(id, { role });
-    setUsers((us) => us.map((u) => (u.id === id ? { ...u, role } : u)));
+    setGuardando(true);
+    setPerfilError("");
+    setPerfilMensaje("");
+    try {
+      const actualizado = await appClient.entities.User.update(id, { role });
+      setUsers((us) => us.map((u) => (u.id === id ? actualizado : u)));
+      setPerfilMensaje(`Perfil actualizado: ${actualizado.email} → ${PERFILES.find((p) => p.value === actualizado.role)?.label || actualizado.role}.`);
+    } catch (err) {
+      setPerfilError(err.message || "No se pudo cambiar el perfil. Intentá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const invitar = async (e) => {
@@ -35,7 +53,7 @@ export default function AdminUsuarios() {
     setInvitando(true);
     setError("");
     try {
-      await base44.users.inviteUser(email.trim(), perfil);
+      await appClient.users.inviteUser(email.trim(), perfil);
       setEmail("");
       await refresh();
     } catch (err) {
@@ -82,6 +100,10 @@ export default function AdminUsuarios() {
       {/* Lista de usuarios */}
       <div className="bg-white rounded-xl border border-[#e5e7eb] p-5">
         <p className="text-sm font-semibold text-[#1f2937] mb-4">Usuarios</p>
+        <p className="text-xs text-[#9b7f82] mb-3">Elegí el perfil de cada usuario. El cambio se guarda automáticamente.</p>
+        {perfilError && <p role="alert" className="text-sm text-[#a33c3c] mb-3">{perfilError}</p>}
+        {perfilMensaje && <p role="status" className="text-sm text-green-700 mb-3">{perfilMensaje}</p>}
+        {guardando && <p role="status" className="text-sm text-[#9b7f82] mb-3">Guardando perfil...</p>}
         {loading ? (
           <div className="py-8 text-center text-sm text-[#9b7f82]">Cargando...</div>
         ) : (
@@ -96,10 +118,13 @@ export default function AdminUsuarios() {
                   <p className="text-xs text-[#9b7f82] truncate">{u.email}</p>
                 </div>
                 <select
-                  value={PERFILES.some((p) => p.value === u.role) ? u.role : "lector"}
+                  aria-label={`Perfil de ${u.email}`}
+                  disabled={guardando}
+                  value={u.role}
                   onChange={(e) => cambiarPerfil(u.id, e.target.value)}
                   className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-xs bg-white shrink-0 focus:outline-none focus:ring-1 focus:ring-[#7a1f33]"
                 >
+                  {u.role === "pending" && <option value="pending" disabled>Pendiente de habilitación</option>}
                   {PERFILES.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function AdminVariedades({ variedades, onRefresh }) {
@@ -7,12 +7,12 @@ export default function AdminVariedades({ variedades, onRefresh }) {
 
   const add = async () => {
     if (!name.trim()) return;
-    await base44.entities.Variedad.create({ name: name.trim() });
+    await appClient.entities.Variedad.create({ name: name.trim() });
     setName("");
     onRefresh();
   };
   const remove = async (id) => {
-    await base44.entities.Variedad.delete(id);
+    await appClient.entities.Variedad.delete(id);
     onRefresh();
   };
 

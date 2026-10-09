@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function AdminFincasBloques({ fincas, bloques, variedades, onRefresh }) {
@@ -8,14 +8,14 @@ export default function AdminFincasBloques({ fincas, bloques, variedades, onRefr
 
   const addFinca = async () => {
     if (!newFinca.trim()) return;
-    await base44.entities.Finca.create({ name: newFinca.trim() });
+    await appClient.entities.Finca.create({ name: newFinca.trim() });
     setNewFinca("");
     onRefresh();
   };
 
   const addBloque = async () => {
     if (!newBloque.name.trim() || !newBloque.finca_id) return;
-    await base44.entities.Bloque.create({
+    await appClient.entities.Bloque.create({
       finca_id: newBloque.finca_id,
       name: newBloque.name.trim(),
       variedad_id: newBloque.variedad_id || undefined,
@@ -26,11 +26,11 @@ export default function AdminFincasBloques({ fincas, bloques, variedades, onRefr
   };
 
   const removeFinca = async (id) => {
-    await base44.entities.Finca.delete(id);
+    await appClient.entities.Finca.delete(id);
     onRefresh();
   };
   const removeBloque = async (id) => {
-    await base44.entities.Bloque.delete(id);
+    await appClient.entities.Bloque.delete(id);
     onRefresh();
   };
 

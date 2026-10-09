@@ -1,132 +1,162 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
-import HistogramaCalibre from "@/components/sesion/HistogramaCalibre";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
-import { ArrowLeft, Apple, Ruler, Droplets, AlertTriangle, Camera } from "lucide-react";
+import { ArrowLeft, Trash2, ZoomIn } from "lucide-react";
+import {AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel} from "@/components/ui/alert-dialog";
+import {Dialog, DialogContent, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {toast} from "sonner";
 import moment from "moment";
+import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
+import {photoWithDiameterEstimates} from "@/lib/capture/lidarDiameter";
+import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [expandedPhotoId, setExpandedPhotoId] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const {user}=useAuth();
   const [sesion, setSesion] = useState(null);
   const [bloque, setBloque] = useState(null);
   const [fotos, setFotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analyzing,setAnalyzing]=useState(null);
+  const [error,setError]=useState("");
 
   useEffect(() => {
     (async () => {
-      const s = await base44.entities.SesionMuestreo.get(id);
+      const s = await appClient.entities.SesionMuestreo.get(id);
       setSesion(s);
       const [b, f] = await Promise.all([
-        base44.entities.Bloque.get(s.bloque_id),
-        base44.entities.Foto.filter({ session_id: id }),
+        appClient.entities.Bloque.get(s.bloque_id),
+        appClient.entities.Foto.filter({ session_id: id }),
       ]);
       setBloque(b);
       const withUrls = await Promise.all(
         f.map(async (foto) => {
           if (!foto.storage_uri) return foto;
           try {
-            const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: foto.storage_uri });
+            const { signed_url } = await appClient.integrations.Core.CreateFileSignedUrl({ file_uri: foto.storage_uri });
             return { ...foto, signed_url };
           } catch {
             return foto;
           }
         })
       );
-      setFotos(withUrls);
+      setFotos(withUrls.map(photoWithDiameterEstimates));
       setLoading(false);
-    })();
+    })().catch(e=>{setError(e.message);setLoading(false);});
   }, [id]);
 
-  if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
+  async function retryAnalysis(foto) {
+    if(analyzing)return;
+    setAnalyzing(foto.id);setError("");
+    try {
+      const result=await savePhoto(appClient,{photoId:foto.id,storage_uri:foto.storage_uri,metadata:foto.capture_metadata},id);
+      const updated=await appClient.entities.Foto.filter({session_id:id});
+      setFotos(prev=>updated.map(f=>photoWithDiameterEstimates({...f,signed_url:prev.find(p=>p.id===f.id)?.signed_url})));
+      const summary=samplingSummary(updated);
+      setSesion(await appClient.entities.SesionMuestreo.update(id,summary));
+      if(result.analysisError)setError(result.analysisError);
+    } catch(e){setError(e.message);} finally{setAnalyzing(null);}
+  }
 
-  const allFruits = fotos.flatMap((f) => f.fruits || []);
-  const defectCounts = {};
-  allFruits.forEach((f) => (f.defects || []).forEach((d) => {
-    defectCounts[d.type] = (defectCounts[d.type] || 0) + 1;
-  }));
-  const topDefects = Object.entries(defectCounts).sort((a, b) => b[1] - a[1]);
-  const labels = { sunburn: "Golpe de sol", cracking: "Rajado", russet: "Russet" };
+  async function deleteSample() {
+    if (user?.role !== 'admin' || deleting || analyzing) return;
+    setDeleting(true); setError('');
+    try {
+      const result = await appClient.entities.SesionMuestreo.delete(id);
+      if (result.cleanupWarning) toast.warning('Muestra eliminada. Algunas fotos almacenadas no pudieron borrarse.');
+      else toast.success('Muestra eliminada.');
+      navigate(bloque?.id ? `/bloque/${bloque.id}` : '/', {replace:true});
+    } catch (e) { setError(e.message || 'No se pudo eliminar la muestra.'); }
+    finally { setDeleting(false); setDeleteOpen(false); }
+  }
+
+  if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
+  if(!sesion)return <AppShell><p role="alert" className="p-6">{error||"No se pudo cargar el muestreo."}</p></AppShell>;
+
+  const expandedPhoto = fotos.find(f => f.id === expandedPhotoId);
+  const colorLabels = {verde: 'Verde', rosado: 'Rosado', rojo: 'Rojo', rojo_oscuro: 'Rojo oscuro'};
+  const percent = value => Number.isFinite(value) ? `${Math.round(value)}%` : '—';
+  const fruitValues = (foto, render) => (foto.fruits || []).length
+    ? foto.fruits.map((fruit, index) => <div key={index} className="py-0.5">{foto.fruits.length > 1 && <span className="text-[#9b7f82]">{index + 1}. </span>}{render(fruit)}</div>)
+    : '—';
 
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
+      <div className="max-w-6xl mx-auto px-5 md:px-8 pt-8 md:pt-10">
+        {error&&<p role="alert" className="p-3 mb-4 rounded-xl bg-red-50 text-red-800">{error}</p>}
         <Link to={`/bloque/${bloque?.id}`} className="flex items-center gap-1.5 text-sm text-[#9b7f82] mb-4 hover:text-[#7a1f33]">
           <ArrowLeft className="w-4 h-4" /> {bloque?.name}
         </Link>
 
-        <div className="bg-white rounded-2xl border border-[#eee1dc] p-6 mb-5">
-          <p className="text-sm text-[#9b7f82] mb-1">Resultado del muestreo</p>
-          <p className="text-4xl font-semibold tracking-tight text-[#2a1a1d]">{sesion.fruit_count || 0} frutos</p>
-        </div>
+        {user?.role === 'admin' && <div className="flex justify-end mb-4">
+          <button type="button" disabled={Boolean(analyzing) || deleting} onClick={()=>setDeleteOpen(true)} className="flex items-center gap-2 text-sm text-red-700 border border-red-200 rounded-lg px-2 md:px-3 py-2 disabled:opacity-50"><Trash2 className="w-4 h-4" />Eliminar muestra</button>
+        </div>}
+        <AlertDialog open={deleteOpen} onOpenChange={open=>{if(!deleting)setDeleteOpen(open);}}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar esta muestra?</AlertDialogTitle>
+              <AlertDialogDescription>Se eliminará el muestreo de {bloque?.name || 'este lote'} del {moment(sesion.started_at || sesion.created_date).format('DD/MM/YYYY HH:mm')}, con sus {fotos.length} fotos y resultados. Dejará de formar parte de los indicadores. Esta acción no se puede deshacer.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <button type="button" disabled={deleting} onClick={deleteSample} className="bg-red-700 text-white rounded-md px-4 py-2 text-sm disabled:opacity-50">{deleting ? 'Eliminando…' : 'Eliminar definitivamente'}</button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
-            <Ruler className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{sesion.avg_diameter_mm ? Math.round(sesion.avg_diameter_mm) : "-"} mm</p>
-            <p className="text-[11px] text-[#9b7f82]">Media</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
-            <AlertTriangle className="w-4 h-4 text-[#b4542a] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{(sesion.cracking_pct || 0).toFixed(0)}%</p>
-            <p className="text-[11px] text-[#9b7f82]">Rajado</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-[#eee1dc] p-4 text-center">
-            <Droplets className="w-4 h-4 text-[#7a1f33] mx-auto mb-1.5" />
-            <p className="text-lg font-semibold text-[#2a1a1d]">{(sesion.red_pct || 0).toFixed(0)}%</p>
-            <p className="text-[11px] text-[#9b7f82]">Rojo</p>
-          </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+          <div><h1 className="text-2xl font-semibold tracking-tight text-[#2a1a1d]">Muestra</h1><p className="text-sm text-[#9b7f82] mt-1">{moment(sesion.started_at || sesion.created_date).format('DD/MM/YYYY · HH:mm')}</p></div>
+          <p className="text-sm text-[#9b7f82]">{fotos.length} fotos · {fotos.reduce((total, f) => total + (f.fruits || []).length, 0)} frutos</p>
         </div>
+        <div className="bg-white rounded-2xl border border-[#eee1dc] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <caption className="sr-only">Resultados por foto del muestreo</caption>
+              <thead className="bg-[#faf5f2] text-[#63343b]">
+                <tr>{['Foto', 'Rojo', 'Hora', 'Diámetro (mm)', 'Color', 'Análisis'].map(label => <th key={label} scope="col" className="px-2 md:px-3 py-3 font-medium">{label}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y divide-[#eee1dc] text-[#2a1a1d]">
+                {fotos.map((foto, index) => <tr key={foto.id} className="hover:bg-[#fdfaf8]">
+                  <td className="px-2 md:px-3 py-2">
+                    {foto.signed_url ? <button type="button" onClick={() => setExpandedPhotoId(foto.id)} aria-label={`Ampliar foto ${index + 1}`} className="relative block rounded-lg overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#7a1f33]">
+                      <img src={foto.signed_url} alt={`Foto ${index + 1}`} className="w-14 h-14 object-cover" />
+                      <span className="absolute bottom-0 right-0 bg-black/60 p-1 text-white"><ZoomIn className="w-3 h-3" /></span>
+                    </button> : <span className="text-xs text-[#9b7f82]">Sin foto</span>}
+                  </td>
 
-        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mb-5">
-          <p className="text-sm font-semibold text-[#2a1a1d] mb-3">Distribución de calibre (mm)</p>
-          <HistogramaCalibre fruits={allFruits} />
-        </div>
+                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => percent(f.red_coverage_pct))}</td>
 
-        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5">
-          <p className="text-sm font-semibold text-[#2a1a1d] mb-3 flex items-center gap-1.5">
-            <Apple className="w-4 h-4 text-[#7a1f33]" /> Top defectos
-          </p>
-          {topDefects.length === 0 ? (
-            <p className="text-sm text-[#b79a9d]">Sin defectos detectados.</p>
-          ) : (
-            <div className="space-y-2">
-              {topDefects.map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between py-1.5 border-b border-[#f4e9e5] last:border-0">
-                  <span className="text-sm text-[#5c4448]">{labels[type] || type}</span>
-                  <span className="text-sm font-medium text-[#2a1a1d]">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div className="bg-white rounded-2xl border border-[#eee1dc] p-5">
-          <p className="text-sm font-semibold text-[#2a1a1d] mb-4 flex items-center gap-1.5">
-            <Camera className="w-4 h-4 text-[#7a1f33]" /> Fotos del muestreo ({fotos.length})
-          </p>
-          {fotos.length === 0 ? (
-            <p className="text-sm text-[#b79a9d] py-6 text-center">Sin fotos registradas.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {fotos.map((f) => (
-                <div key={f.id}>
-                  {f.signed_url ? (
-                    <AnnotatedPhoto src={f.signed_url} fruits={f.fruits || []} />
-                  ) : (
-                    <div className="aspect-square rounded-xl bg-[#f4e9e5] flex items-center justify-center text-xs text-[#b79a9d]">
-                      No disponible
+                  <td className="px-2 md:px-3 py-2 text-[#9b7f82]">{foto.captured_at ? moment(foto.captured_at).format('HH:mm') : '—'}</td>
+                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status === 'experimental' && Number.isFinite(f.lidar_estimate.diameter_mm) ? <span title="Diámetro estimado con LiDAR">≈{Math.round(f.lidar_estimate.diameter_mm)} mm</span> : '—')}</td>
+                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => colorLabels[f.color_category] || '—')}</td>
+                  <td className="px-2 md:px-3 py-2">
+                    <div className="flex flex-col items-start gap-1">
+                      {foto.status !== 'listo' && <span className="text-xs text-amber-800">Pendiente</span>}
+                      {foto.status === 'listo' && !(foto.fruits || []).length && <span className="text-xs text-[#9b7f82]">Sin granadas</span>}
+                      {(user?.role === 'admin' || foto.created_by === user?.id) && <button type="button" disabled={Boolean(analyzing)} onClick={() => retryAnalysis(foto)} className="text-xs text-[#7a1f33] underline py-2 disabled:opacity-50">{analyzing === foto.id ? 'Analizando…' : foto.status === 'listo' ? 'Reanalizar' : 'Reintentar'}</button>}
                     </div>
-                  )}
-                  <p className="text-[11px] text-[#9b7f82] mt-1.5">
-                    {f.captured_at ? moment(f.captured_at).format("HH:mm") : ""} · {f.fruit_count_estimate || 0} frutos
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+                  </td>
+                </tr>)}
+                {!fotos.length && <tr><td colSpan={6} className="p-6 text-center text-[#9b7f82]">Sin fotos registradas.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <p className="px-4 py-3 text-xs text-[#9b7f82] border-t border-[#eee1dc]">Rojo sobre piel visible · — sin dato · Diámetro estimado: corroborar con calibre manual. Tocá la foto para ampliarla.</p>
         </div>
+        <Dialog open={Boolean(expandedPhoto)} onOpenChange={open => {if (!open) setExpandedPhotoId(null);}}>
+          <DialogContent className="w-[calc(100%-1rem)] max-w-3xl max-h-[92dvh] overflow-y-auto rounded-xl p-4">
+            <DialogTitle>Foto {fotos.findIndex(f => f.id === expandedPhotoId) + 1}</DialogTitle>
+            <DialogDescription className="sr-only">Foto ampliada con contorno para calibre.</DialogDescription>
+            {expandedPhoto && <AnnotatedPhoto src={expandedPhoto.signed_url} fruits={expandedPhoto.fruits || []} />}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );

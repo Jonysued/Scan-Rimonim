@@ -1,62 +1,28 @@
-# Base44 Project
+# Scan-Rimonim
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+Aplicación independiente para registrar muestreos de granadas. React/Vite, Supabase Auth/Postgres/Storage y funciones HTTP en Vercel. No usa SDK, backend ni autenticación de Base44.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Preparación
 
-## Prerequisites
+1. Crear un proyecto Supabase dedicado. Ejecutar `database/schema.sql` una sola vez en una base nueva.
+2. Copiar `.env.example` a `.env.local`. Completar las dos variables públicas `VITE_SUPABASE_*`; las claves de servicio y OpenAI son exclusivas del servidor.
+3. En Supabase Auth configurar la URL HTTPS publicada y permitir `/login` y `/reset-password` como redirecciones. Configurar SMTP para enviar confirmaciones, invitaciones y recuperación.
+4. Registrarse y confirmar el correo. Promover únicamente la cuenta del propietario desde SQL: `update public.profiles set role = 'admin' where id = '<UUID_VERIFICADO>';`. Las siguientes cuentas empiezan pendientes y se habilitan desde Configuración.
+5. `npm ci`, `npm run dev` para la interfaz. Las rutas `/api` requieren Vercel (`vercel dev` con las variables de servidor) para el análisis y administración de usuarios.
+6. Publicar en Vercel con el directorio raíz del repositorio y las variables de `.env.example`. Nunca poner claves privadas en variables `VITE_*`.
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
-5. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) — the local Base44 backend runs on it.
+## Flujo
 
-Run `base44 --help` (or see the [CLI reference](https://docs.base44.com/developers/references/cli/commands/introduction)) for the full command surface.
+Configuración contiene variedades, fincas y lotes. Nuevo muestreo exige elegir un lote antes de capturar. Una sesión conserva ese contexto. Las fotos usan un bucket privado y enlaces temporales; una foto fallida puede reintentarse o descartarse antes de finalizar. El análisis visual estima color y localiza la fruta para el calibre, y devuelve como máximo una fruta central; requiere revisión humana.
 
-## Run Locally
+La web mantiene el botón Tomar foto, sin círculo ni bloqueo por detección. Pide una fruta completa y enfocada. No calcula distancia física. OpenAI analiza la foto después de guardarla; la clave OPENAI_API_KEY se configura sólo en el servidor. Si el análisis falla, la foto se conserva y puede reintentarse desde el muestreo.
 
-Three commands, from the project root:
+`mobile/` está conectado a https://scan-rimonim.vercel.app. Detecta soporte LiDAR trasero y captura foto, profundidad e intrínsecos del mismo ARFrame. En equipos sin LiDAR conserva la foto trasera sin escala. La estimación del diámetro es experimental, supone un cuerpo esférico y necesita comparación con calibre físico en un iPhone Pro real. No funciona en Expo Go. Ver `mobile/README.md`.
 
-```bash
-base44 login   # one-time per machine
-base44 link    # one-time per clone
-base44 dev     # local backend + frontend together
-```
+No se informa calibre en milímetros sin una escala y geometría validadas. Los valores ausentes se excluyen de promedios, gráficos y alertas de calibre.
 
-Open the frontend URL that `base44 dev` prints (typically `http://localhost:5173`).
+## Verificación y pendientes de publicación
 
-Notes:
+`npm run build`, `npm run lint`, `npm run test`. El verificador JS heredado (`npm run typecheck`) tiene errores de tipos en componentes UI y debe completarse antes de considerarlo una comprobación válida.
 
-- **Every fresh clone needs `base44 link`.** It writes `base44/.app.jsonc` (the app-id pointer), which is deliberately gitignored. Your app id is in the Builder URL (`app.base44.com/apps/<id>/...`); `base44 link --help` shows the non-interactive flags.
-- **`base44 dev` runs the frontend for you** (via `site.serveCommand` in this repo's `base44/config.jsonc`) — never run `npm run dev` yourself: alone it serves a UI with no backend behind it (`[base44] Proxy not enabled`, every `/api` call fails), and alongside `base44 dev` the second Vite silently takes the next port and you end up looking at the wrong one.
-- **The app must be published at least once for the UI to load under `base44 dev`.** The frontend boots by fetching app settings from the hosted app; before the first publish that fails and every page redirects to login. The local API works regardless.
-- Entities, functions, and auth run locally — entity data is **in-memory only**, wiped when `base44 dev` restarts. Everything else (Core integrations, OAuth login) is forwarded to your deployed app. Full breakdown: [Local development overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview).
-
-## Frontend Only, Hosted Backend
-
-To work on just the frontend against your app's live hosted backend:
-
-```bash
-base44 dev --remote
-```
-
-⚠️ In this mode writes go to your app's **production data** — plain `base44 dev` keeps everything local.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
-
-## Docs & Support
-
-GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
-
-Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+La migración de código no copia usuarios ni datos del servicio anterior. Antes de cambiar producción, desconectar la sincronización de GitHub desde el servicio anterior, configurar el nuevo backend, probar registro/recuperación, permisos, catálogos, cámara y muestreo completo. Este árbol por sí solo no revoca conexiones externas ni publica una app en TestFlight.

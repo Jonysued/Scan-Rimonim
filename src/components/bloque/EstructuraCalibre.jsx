@@ -9,6 +9,7 @@ export default function EstructuraCalibre({ fruits }) {
   for (let m = 55; m < 110; m += 5) buckets.push({ label: `${m}-${m + 5}`, min: m, max: m + 5 });
   buckets.push({ label: ">110", min: 110, max: Infinity });
 
+  fruits = fruits.filter(f => Number.isFinite(f.diameter_mm) && f.diameter_mm > 0);
   const total = fruits.length;
   const data = buckets.map((b) => {
     const count = fruits.filter((f) => f.diameter_mm >= b.min && f.diameter_mm < b.max).length;

@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Scan Rimonim",
+    "slug": "scan-rimonim",
+    "version": "1.0.0",
+    "icon": "./assets/icon.png",
+    "orientation": "portrait",
+    "ios": {
+      "bundleIdentifier": "ar.com.rimonim.scan",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Fotografiar granadas con la cámara trasera y usar LiDAR compatible para estimar su diámetro y evaluar su color.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "supportsTablet": false
+    },
+    "extra": {
+      "webUrl": "https://scan-rimonim.vercel.app",
+      "eas": {
+        "projectId": "3792ac7f-97e5-4950-a7a2-c8b325ab2288"
+      }
+    },
+    "owner": "jonysueds-team"
+  }
+}

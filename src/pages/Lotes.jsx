@@ -1,6 +1,7 @@
+import { measuredMean } from "@/lib/capture/metrics";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import { MapPin, ChevronRight, Ruler } from "lucide-react";
 
@@ -14,10 +15,10 @@ export default function Lotes() {
   useEffect(() => {
     (async () => {
       const [f, b, v, s] = await Promise.all([
-        base44.entities.Finca.list(),
-        base44.entities.Bloque.list(),
-        base44.entities.Variedad.list(),
-        base44.entities.SesionMuestreo.filter({ status: "listo" }, "-started_at"),
+        appClient.entities.Finca.list(),
+        appClient.entities.Bloque.list(),
+        appClient.entities.Variedad.list(),
+        appClient.entities.SesionMuestreo.filter({ status: "listo" }, "-started_at"),
       ]);
       setFincas(f);
       setBloques(b);
@@ -31,7 +32,7 @@ export default function Lotes() {
   const sesionesDe = (bloqueId) => sesiones.filter((s) => s.bloque_id === bloqueId);
   const ultimaMedicion = (bloqueId) => {
     const lista = sesionesDe(bloqueId);
-    return lista.length ? lista.reduce((a, s) => a + (s.avg_diameter_mm || 0), 0) / lista.length : null;
+    return measuredMean(lista.map(s => s.avg_diameter_mm));
   };
 
   return (

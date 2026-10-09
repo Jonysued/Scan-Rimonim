@@ -1,0 +1,28 @@
+{
+  "name": "scan-rimonim-ios",
+  "private": true,
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "build:ios": "npx eas-cli@latest build --platform ios --profile production",
+    "submit:ios": "npx eas-cli@latest submit --platform ios --profile production",
+    "check": "npm run typecheck && npx expo install --check"
+  },
+  "dependencies": {
+    "expo": "57.0.26",
+    "expo-constants": "57.0.20",
+    "expo-file-system": "57.0.7",
+    "expo-modules-core": "57.0.20",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "5.7.0",
+    "react-native-webview": "13.16.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "6.0.3"
+  }
+}

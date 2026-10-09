@@ -2,6 +2,8 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export default function HistogramaCalibre({ fruits }) {
+  fruits = fruits.filter(f=>Number.isFinite(f.diameter_mm) && f.diameter_mm > 0);
+  if(!fruits.length) return <p className="py-8 text-center text-sm">Sin calibre medido.</p>;
   const buckets = [
     { label: "<60", min: -Infinity, max: 60 },
     { label: "60-70", min: 60, max: 70 },
