@@ -2,7 +2,7 @@ import {validatedContour} from './contourGeometry.js';
 let worker;
 const pending=new Map();
 let sequence=0;
-export async function segmentFruit(client,storage_uri,seed) {
+export async function segmentFruit(client,storage_uri,seed,crownExclusion=null) {
   const {signed_url}=await client.integrations.Core.CreateFileSignedUrl({file_uri:storage_uri});
   const response=await fetch(signed_url);
   if(!response.ok) throw new Error('No se pudo abrir la foto para detectar el contorno.');
@@ -24,6 +24,6 @@ export async function segmentFruit(client,storage_uri,seed) {
     const id=++sequence;
     const timer=setTimeout(()=>{pending.delete(id);reject(new Error('La segmentación tardó demasiado. Reintentá el análisis.'));},90000);
     pending.set(id,{resolve,reject,timer});
-    worker.postMessage({id,bitmap,seed},[bitmap]);
+    worker.postMessage({id,bitmap,seed,crownExclusion},[bitmap]);
   });
 }
