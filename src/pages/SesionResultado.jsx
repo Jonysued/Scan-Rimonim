@@ -9,6 +9,7 @@ import {Dialog, DialogContent, DialogTitle, DialogDescription} from "@/component
 import {toast} from "sonner";
 import moment from "moment";
 import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
+import {photoWithDiameterEstimates} from "@/lib/capture/lidarDiameter";
 import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
@@ -45,7 +46,7 @@ export default function SesionResultado() {
           }
         })
       );
-      setFotos(withUrls);
+      setFotos(withUrls.map(photoWithDiameterEstimates));
       setLoading(false);
     })().catch(e=>{setError(e.message);setLoading(false);});
   }, [id]);
@@ -56,7 +57,7 @@ export default function SesionResultado() {
     try {
       const result=await savePhoto(appClient,{photoId:foto.id,storage_uri:foto.storage_uri,metadata:foto.capture_metadata},id);
       const updated=await appClient.entities.Foto.filter({session_id:id});
-      setFotos(prev=>updated.map(f=>({...f,signed_url:prev.find(p=>p.id===f.id)?.signed_url})));
+      setFotos(prev=>updated.map(f=>photoWithDiameterEstimates({...f,signed_url:prev.find(p=>p.id===f.id)?.signed_url})));
       const summary=samplingSummary(updated);
       setSesion(await appClient.entities.SesionMuestreo.update(id,summary));
       if(result.analysisError)setError(result.analysisError);
@@ -118,7 +119,7 @@ export default function SesionResultado() {
             <table className="w-full text-sm text-left whitespace-nowrap">
               <caption className="sr-only">Resultados por foto del muestreo</caption>
               <thead className="bg-[#faf5f2] text-[#63343b]">
-                <tr>{['Foto', 'Rojo', 'Hora', 'Calibre', 'Color', 'Análisis'].map(label => <th key={label} scope="col" className="px-2 md:px-3 py-3 font-medium">{label}</th>)}</tr>
+                <tr>{['Foto', 'Rojo', 'Hora', 'Diámetro (mm)', 'Color', 'Análisis'].map(label => <th key={label} scope="col" className="px-2 md:px-3 py-3 font-medium">{label}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-[#eee1dc] text-[#2a1a1d]">
                 {fotos.map((foto, index) => <tr key={foto.id} className="hover:bg-[#fdfaf8]">
@@ -133,7 +134,7 @@ export default function SesionResultado() {
 
 
                   <td className="px-2 md:px-3 py-2 text-[#9b7f82]">{foto.captured_at ? moment(foto.captured_at).format('HH:mm') : '—'}</td>
-                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status === 'experimental' && Number.isFinite(f.lidar_estimate.diameter_mm) ? <span title="LiDAR experimental">≈{Math.round(f.lidar_estimate.diameter_mm)} mm*</span> : '—')}</td>
+                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status === 'experimental' && Number.isFinite(f.lidar_estimate.diameter_mm) ? <span title="Diámetro estimado con LiDAR">≈{Math.round(f.lidar_estimate.diameter_mm)} mm</span> : '—')}</td>
                   <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => colorLabels[f.color_category] || '—')}</td>
                   <td className="px-2 md:px-3 py-2">
                     <div className="flex flex-col items-start gap-1">
@@ -147,7 +148,7 @@ export default function SesionResultado() {
               </tbody>
             </table>
           </div>
-          <p className="px-4 py-3 text-xs text-[#9b7f82] border-t border-[#eee1dc]">Rojo sobre piel visible · — sin dato · * LiDAR experimental. Tocá la foto para ampliarla.</p>
+          <p className="px-4 py-3 text-xs text-[#9b7f82] border-t border-[#eee1dc]">Rojo sobre piel visible · — sin dato · Diámetro estimado: corroborar con calibre manual. Tocá la foto para ampliarla.</p>
         </div>
         <Dialog open={Boolean(expandedPhoto)} onOpenChange={open => {if (!open) setExpandedPhotoId(null);}}>
           <DialogContent className="w-[calc(100%-1rem)] max-w-3xl max-h-[92dvh] overflow-y-auto rounded-xl p-4">
