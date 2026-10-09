@@ -45,7 +45,7 @@ export const appClient={
   users:{inviteUser:(email,role)=>request('users',{action:'invite',email,role})},
   functions:{invoke:async(name,body)=>({data:await request(name,body)})},
   integrations:{Core:{
-    UploadPrivateFile:async({file})=>{const {user}=await unwrap(getClient().auth.getUser());if(!user)throw new Error('Iniciá sesión');const path=user.id+'/'+crypto.randomUUID()+'.jpg';await unwrap(getClient().storage.from('photos').upload(path,file,{contentType:'image/jpeg',upsert:false}));return {file_uri:path};},
+    UploadPrivateFile:async({file,stableId})=>{const {user}=await unwrap(getClient().auth.getUser());if(!user)throw new Error('Iniciá sesión');if(stableId && !/^[0-9a-f-]{36}$/i.test(stableId))throw new Error('Identificador de foto inválido');const path=user.id+'/'+(stableId || crypto.randomUUID())+'.jpg';const {error}=await getClient().storage.from('photos').upload(path,file,{contentType:'image/jpeg',upsert:false});if(error){if(!stableId)throw error;const existing=await getClient().storage.from('photos').download(path);if(existing.error)throw error;}return {file_uri:path};},
     CreateFileSignedUrl:async({file_uri})=>{const data=await unwrap(getClient().storage.from('photos').createSignedUrl(file_uri,300));return {signed_url:data.signedUrl};},
   }}
 };
