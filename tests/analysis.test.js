@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import handler, {localization} from '../api/analyzePhoto.js';
 import {samplingSummary} from '../src/lib/capture/savePhoto.js';
 
-async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fruits=[]}={}) {
+async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fruits=[],storedPhoto=null}={}) {
   const oldFetch=globalThis.fetch;
   const names=['SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY','OPENAI_API_KEY'];
   const env=Object.fromEntries(names.map(n=>[n,process.env[n]]));
@@ -15,6 +15,7 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     const url=String(input);calls.push(url);
     if(url.includes('/auth/v1/user'))return Response.json({id:'owner'});
     if(url.includes('/rest/v1/profiles'))return Response.json({role});
+    if(url.includes('/rest/v1/fotos'))return Response.json(storedPhoto);
     if(url.includes('/storage/v1/object/sign/') && options.method==='POST'){
       assert.equal(new Headers(options.headers).get('Authorization'),'Bearer user-token');
       return Response.json({signedURL:'/object/sign/photos/owner/photo.jpg?token=test'});
@@ -47,7 +48,7 @@ test('pending role is denied before storage or paid inference',async()=>{
   const {res,calls}=await run({role:'pendiente'});assert.equal(res.code,403);assert.equal(calls.length,2);
 });
 test('another owner image is rejected before inference',async()=>{
-  const {res,calls}=await run({storage:'other/photo.jpg'});assert.equal(res.code,400);assert.equal(calls.length,2);
+  const {res,calls}=await run({storage:'other/photo.jpg'});assert.equal(res.code,403);assert.equal(calls.length,2);
 });
 test('unactivated credits returns actionable error instead of implying a background queue',async()=>{
   const {res}=await run({aiStatus:402});assert.equal(res.code,503);assert.match(res.data.error,/saldo/);
@@ -128,5 +129,22 @@ test('semantic crown exclusion is normalized to the same image as the segmentati
   for(const points of [null,[{x:0,y:0}],[{x:-1,y:0},{x:100,y:0},{x:100,y:100}],[{x:0,y:0},{x:1500,y:0},{x:1500,y:2000}]]){
     const {res}=await run({fruits:[{crown_polygon:points}]});
     assert.equal(res.data.fruits[0].crown_exclusion,null);
+  }
+});
+
+
+test('admin can reanalyze another user photo only when its stored record matches its owner',async()=>{
+  const allowed=await run({role:'admin',storage:'other/photo.jpg',storedPhoto:{id:'p1',created_by:'other'}});
+  assert.equal(allowed.res.code,200);
+  assert.ok(allowed.calls.some(url=>url.includes('/rest/v1/fotos')));
+  for(const storedPhoto of [null,{id:'p1',created_by:'wrong-owner'}]){
+    const denied=await run({role:'admin',storage:'other/photo.jpg',storedPhoto});
+    assert.equal(denied.res.code,404);
+    assert.equal(denied.calls.some(url=>url.includes('/storage/')),false);
+    assert.equal(denied.calls.some(url=>url.includes('api.openai.com')),false);
+  }
+  for(const storage of ['https://example.com/photo.jpg','../other/photo.jpg','/other/photo.jpg']){
+    const denied=await run({role:'admin',storage});assert.equal(denied.res.code,400);
+    assert.equal(denied.calls.length,2);
   }
 });
