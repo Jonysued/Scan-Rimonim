@@ -2,6 +2,7 @@
 import {segmentFruit} from './segmentFruit.js';
 import {estimateLidarDiameter} from './lidarDiameter.js';
 export async function savePhoto(client, foto, sessionId, variedadName, onSaved = () => {}) {
+  const existingPhoto=Boolean(foto.photoId);
   const storage_uri = foto.storage_uri || (await client.integrations.Core.UploadPrivateFile({file: foto.file})).file_uri;
   foto.storage_uri = storage_uri;
   const photo = foto.photoId ? {id: foto.photoId} : await client.entities.Foto.create({
@@ -32,8 +33,9 @@ export async function savePhoto(client, foto, sessionId, variedadName, onSaved =
     await client.entities.Foto.update(photo.id, values);
     return {...values, photoId: photo.id, storage_uri,analysisError:segmentationError};
   } catch (error) {
-    // 'procesando' or 'error' both mean not analyzed; the saved record survives.
-    await client.entities.Foto.update(photo.id, {status: 'error'}).catch(() => {});
+    // A failed reanalysis preserves the previous status and results.
+    // Only a new photo with no successful analysis is marked as an error.
+    if(!existingPhoto)await client.entities.Foto.update(photo.id, {status: 'error'}).catch(() => {});
     return {status: 'guardado', photoId: photo.id, storage_uri, analysisError: error.message};
   }
 }
