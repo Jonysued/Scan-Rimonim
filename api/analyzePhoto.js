@@ -23,10 +23,17 @@ export function localization(f, {width=1000,height=1000}={}) {
 export default async function handler(req,res){
   if(req.method!=='POST')return res.status(405).end();
   try{
-    const {client,user}=await authenticateScoped(req,['admin','muestreador']);
+    const {client,user,profile}=await authenticateScoped(req,['admin','muestreador']);
     const {storage_uri}=req.body||{};
-    // Never fetch an arbitrary client-supplied URL or trust client depth for sizing.
-    if(typeof storage_uri!=='string'||!storage_uri.startsWith(user.id+'/')||storage_uri.includes('..'))return res.status(400).json({error:'Foto inválida.'});
+    // Reject URLs/traversal. Admin reanalysis must reference an existing photo,
+    // read with the caller's RLS permissions, never an arbitrary storage object.
+    if(typeof storage_uri!=='string'||!storage_uri||storage_uri.startsWith('/')||storage_uri.includes('..')||storage_uri.includes('://'))return res.status(400).json({error:'La referencia de la foto no es válida.'});
+    if(!storage_uri.startsWith(user.id+'/')) {
+      if(profile.role!=='admin')return res.status(403).json({error:'No tenés permiso para reanalizar esta foto.'});
+      const {data:photo,error:photoError}=await client.from('fotos').select('id,created_by').eq('storage_uri',storage_uri).limit(1).maybeSingle();
+      if(photoError)throw photoError;
+      if(!photo||!storage_uri.startsWith(photo.created_by+'/'))return res.status(404).json({error:'No se encontró la foto guardada para reanalizar.'});
+    }
     const key=process.env.OPENAI_API_KEY;
     if(!key)return res.status(503).json({error:'Análisis de OpenAI no habilitado: falta configurar OPENAI_API_KEY en el servidor. La foto está guardada; no hay análisis en segundo plano.'});
     const {data,error}=await client.storage.from('photos').createSignedUrl(storage_uri,180);if(error)throw error;
