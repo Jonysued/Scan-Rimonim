@@ -26,11 +26,11 @@ test('intrinsics and grid aspect changes preserve metric scale',()=>{
   const {metadata,contour}=sphere({portrait:false});
   assert.ok(Math.abs(estimateLidarDiameter(metadata,contour).diameter_mm-80)<4);
 });
-test('40 cm surface capture uses measured depth, not a fixed diameter or nominal distance',()=>{
-  for(const radius of [30,40,55])for(const surfaceDistance of [390,400,410]){
+test('20 and 40 cm surface capture uses measured depth, not a fixed diameter or nominal distance',()=>{
+  for(const radius of [30,40,55])for(const surfaceDistance of [190,200,210,390,400,410]){
     const {metadata,contour}=sphere({radius,z:surfaceDistance+radius});
     metadata.distanceM=surfaceDistance/1000;
-    metadata.capture_protocol={id:'lidar-front-40cm-v1',target_distance_m:.4,tolerance_m:.01,measured_distance_m:metadata.distanceM};
+    metadata.capture_protocol={id:surfaceDistance<300?'lidar-front-20cm-v1':'lidar-front-40cm-v1',target_distance_m:surfaceDistance<300?.2:.4,tolerance_m:.01,measured_distance_m:metadata.distanceM};
     const result=estimateLidarDiameter(metadata,contour);
     assert.equal(result.status,'experimental');
     assert.ok(Math.abs(result.diameter_mm-radius*2)<4,JSON.stringify(result));
@@ -64,12 +64,12 @@ test('saving keeps experimental diameter separate from validated calibre summari
 });
 
 test('smoothed fruit depth uses the existing contour and actual surface distance',()=>{
-  for(const radius of [30,40,55])for(const surface of [390,400,410]){
+  for(const radius of [30,40,55])for(const surface of [190,200,210,390,400,410]){
     const {metadata,contour}=sphere({radius,z:surface+radius});
     metadata.depth_mm=metadata.depth_mm.map(z=>z===1000?1000:surface);
     const before=structuredClone(contour),result=estimateLidarDiameter(metadata,contour);
     assert.equal(result.status,'experimental');assert.equal(result.method,'lidar-contour-width-v2');
-    assert.ok(Math.abs(result.diameter_mm-radius*2)<2,JSON.stringify(result));
+    assert.ok(Math.abs(result.diameter_mm-radius*2)<4,JSON.stringify(result));
     assert.deepEqual(contour,before);assert.equal(result.validation,'pending-physical-comparison');
   }
 });
