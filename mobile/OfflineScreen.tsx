@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {ScrollView,View,Text,Pressable,Image,StyleSheet} from 'react-native';
 import {requireNativeModule} from 'expo-modules-core';
-import {Catalog,Sample,newId,saveSample,saveCapture} from './offlineStore';
+import {Catalog,Sample,newId,saveSample,saveCapture,photoUri} from './offlineStore';
 type Props={catalog:Catalog|null;samples:Sample[];onChanged:()=>Promise<void>;onOnline:()=>void;syncStatus:string;};
 export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncStatus}:Props){
  const [active,setActive]=useState<Sample|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
@@ -25,7 +25,7 @@ export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncSt
   {active?<View>
    <Text style={s.heading}>{active.bloqueName}</Text><Text style={s.muted}>{active.photos.length} fotos guardadas en el teléfono · análisis pendiente</Text>
    <Pressable accessibilityRole="button" disabled={busy} style={s.primary} onPress={take}><Text style={s.white}>{busy?'Guardando…':'Tomar foto'}</Text></Pressable>
-   <View style={s.photos}>{active.photos.map(p=><Image key={p.id} source={{uri:p.uri}} style={s.photo} accessibilityLabel="Foto guardada"/>)}</View>
+   <View style={s.photos}>{active.photos.map(p=><Image key={p.id} source={{uri:photoUri(p)}} style={s.photo} accessibilityLabel="Foto guardada"/>)}</View>
    <Pressable accessibilityRole="button" disabled={busy||!active.photos.length} style={s.primary} onPress={finish}><Text style={s.white}>Finalizar y guardar muestra</Text></Pressable>
    <Pressable accessibilityRole="button" disabled={busy} style={s.secondary} onPress={()=>setActive(null)}><Text style={s.accent}>Volver · conservar borrador</Text></Pressable>
   </View>:<View>
