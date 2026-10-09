@@ -25,7 +25,7 @@ Desde esta carpeta:
 
 No se comparte la firma ni los identificadores de Empaco o Lucient. La primera compilación debe probar ingreso, cámara manual, carga y análisis de fotos, navegación, cancelación, permiso de cámara rechazado y recuperación de conexión. El simulador no valida la cámara física.
 
-Texto para «Qué probar»: Ingreso y navegación; muestreo con una granada por foto; guardado y análisis de color y defectos con OpenAI; recuperación ante pérdida de conexión. Captura con cámara trasera principal, enfoque automático y botón Tomar foto. Sin calibre métrico validado. Muestreo offline disponible: descargar lotes con la cuenta habilitada antes de salir; guardar fotos y LiDAR en el teléfono; finalizar la muestra; reabrir con internet para sincronizar y analizar. No se analizan fotos offline. Probar modo avión, cierre completo y reapertura, corte durante sincronización y reintento sin duplicados.
+Texto para «Qué probar»: Ingreso y navegación; muestreo con una granada por foto; guardado, análisis de color con OpenAI y estimación de calibre con LiDAR; recuperación ante pérdida de conexión. Captura con cámara trasera principal, enfoque automático y botón Tomar foto. Sin calibre métrico validado. Muestreo offline disponible: descargar lotes con la cuenta habilitada antes de salir; guardar fotos y LiDAR en el teléfono; finalizar la muestra; reabrir con internet para sincronizar y analizar. No se analizan fotos offline. Probar modo avión, cierre completo y reapertura, corte durante sincronización y reintento sin duplicados.
 
 
 ## Modo sin conexión
