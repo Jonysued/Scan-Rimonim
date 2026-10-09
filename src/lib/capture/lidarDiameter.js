@@ -31,7 +31,7 @@ function estimateSphereDiameter(metadata, contour) {
       if(!inside(x,y)) continue;
       candidates++;
       const i=y*w+x,z=depth[i];
-      if(confidence[i]!==2 || !Number.isFinite(z)||z<250||z>800) continue;
+      if(confidence[i]!==2 || !Number.isFinite(z)||z<150||z>800) continue;
       cloud.push([(x-k.cx)*z/k.fx,(y-k.cy)*z/k.fy,z]);
     }
   }
@@ -90,7 +90,7 @@ export function estimateLidarDiameter(metadata, contour) {
     for(let x=Math.ceil(left+(right-left)*.3);x<right-(right-left)*.3;x++){
       if(!inside(x,y))continue;candidates++;
       const i=y*w+x,z=depth[i];
-      if(confidence[i]===2&&Number.isFinite(z)&&z>=250&&z<=800)values.push(z);
+      if(confidence[i]===2&&Number.isFinite(z)&&z>=150&&z<=800)values.push(z);
     }
   }
   if(values.length<25||values.length/candidates<.8)return {status:'unavailable',reason:'insufficient_confidence'};
