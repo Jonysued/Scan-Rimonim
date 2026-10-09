@@ -121,3 +121,12 @@ test('historical results aggregate only color and calibre',()=>{
   const summary=samplingSummary([{status:'listo',fruits:[{color_category:'rojo',diameter_mm:80,defects:[{type:'cracking'}],russet_coverage_pct:30}]}]);
   assert.deepEqual(summary,{status:'listo',photo_count:1,fruit_count:1,avg_diameter_mm:80,red_pct:100});
 });
+
+test('semantic crown exclusion is normalized to the same image as the segmentation seed',async()=>{
+  const {res}=await run({fruits:[{body_center:{x:750,y:1100},localization_confidence:.95,crown_polygon:[{x:700,y:500},{x:800,y:500},{x:800,y:600},{x:700,y:600}]}]});
+  assert.deepEqual(res.data.fruits[0].crown_exclusion,[{x:700/1500,y:.25},{x:800/1500,y:.25},{x:800/1500,y:.3},{x:700/1500,y:.3}]);
+  for(const points of [null,[{x:0,y:0}],[{x:-1,y:0},{x:100,y:0},{x:100,y:100}],[{x:0,y:0},{x:1500,y:0},{x:1500,y:2000}]]){
+    const {res}=await run({fruits:[{crown_polygon:points}]});
+    assert.equal(res.data.fruits[0].crown_exclusion,null);
+  }
+});
