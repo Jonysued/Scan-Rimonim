@@ -9,7 +9,7 @@ function entity(table) {
   return { list:(sort,limit)=>read({},sort,limit), filter:read,
     get:id=>unwrap(getClient().from(table).select('*').eq('id',id).single()),
     create:data=>unwrap(getClient().from(table).insert(data).select().single()),
-    update:(id,data)=> table==='profiles' ? request('users',{action:'role',id,role:data.role}) : unwrap(getClient().from(table).update(data).eq('id',id).select().single()),
+    update:(id,data)=> table==='profiles' ? unwrap(getClient().rpc('set_user_role',{target_user_id:id,new_role:data.role})) : unwrap(getClient().from(table).update(data).eq('id',id).select().single()),
     delete:id=>table==='sesiones' ? deleteSample(id) : unwrap(getClient().from(table).delete().eq('id',id)) };
 }
 async function deleteSample(id) {
