@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {estimateLidarDiameter} from '../src/lib/capture/lidarDiameter.js';
+import {estimateLidarDiameter,photoWithDiameterEstimates} from '../src/lib/capture/lidarDiameter.js';
 import {savePhoto,samplingSummary} from '../src/lib/capture/savePhoto.js';
 
 function sphere({radius=40,z=500,confidenceLevel=2,portrait=true}={}) {
@@ -37,9 +37,9 @@ test('40 cm surface capture uses measured depth, not a fixed diameter or nominal
     assert.equal(result.validation,'pending-physical-comparison');
   }
 });
-test('flat depth, weak confidence, missing data and contour mismatch never produce diameter',()=>{
+test('weak confidence, missing data and contour mismatch never produce diameter',()=>{
   const {metadata,contour}=sphere();
-  for(const m of [null,{...metadata,depth_mm:Array(metadata.width*metadata.height).fill(500)},
+  for(const m of [null,
     {...metadata,confidence:metadata.confidence.map(()=>1)}, {...metadata,intrinsics:{...metadata.intrinsics,fx:0}},
     {...metadata,image_width:100}, {...metadata,depth_mm:[]}]) {
     assert.equal(estimateLidarDiameter(m,contour).status,'unavailable');
@@ -61,4 +61,33 @@ test('saving keeps experimental diameter separate from validated calibre summari
   assert.equal(saved.fruits[0].lidar_estimate.status,'experimental');
   assert.equal(saved.fruits[0].diameter_mm,null);assert.equal(saved.avg_diameter_mm,null);
   assert.equal(samplingSummary([saved]).avg_diameter_mm,null);
+});
+
+test('smoothed fruit depth uses the existing contour and actual surface distance',()=>{
+  for(const radius of [30,40,55])for(const surface of [390,400,410]){
+    const {metadata,contour}=sphere({radius,z:surface+radius});
+    metadata.depth_mm=metadata.depth_mm.map(z=>z===1000?1000:surface);
+    const before=structuredClone(contour),result=estimateLidarDiameter(metadata,contour);
+    assert.equal(result.status,'experimental');assert.equal(result.method,'lidar-contour-width-v2');
+    assert.ok(Math.abs(result.diameter_mm-radius*2)<2,JSON.stringify(result));
+    assert.deepEqual(contour,before);assert.equal(result.validation,'pending-physical-comparison');
+  }
+});
+test('width estimates reject mixed surfaces, invalid sizes and clipped silhouettes',()=>{
+  const {metadata,contour}=sphere();
+  metadata.depth_mm=metadata.depth_mm.map(()=>500);
+  const mixed={...metadata,depth_mm:metadata.depth_mm.map((z,i)=>i%2?z:600)};
+  assert.equal(estimateLidarDiameter(mixed,contour).status,'unavailable');
+  const clipped=contour.map(p=>({x:p.x-420,y:p.y}));
+  assert.equal(estimateLidarDiameter(metadata,clipped).status,'unavailable');
+});
+test('historical display recalculates from stored depth without changing contours, measurements or averages',()=>{
+  const {metadata,contour}=sphere();metadata.depth_mm=metadata.depth_mm.map(z=>z===1000?1000:460);
+  const fruit={localization_version:4,localization_status:'located',segmentation_model:'mediapipe-magic-touch-v2',body_contour:contour,diameter_mm:null,lidar_estimate:{status:'unavailable',reason:'implausible_shape'}};
+  const photo={capture_metadata:metadata,fruits:[fruit],avg_diameter_mm:null};const before=structuredClone(photo);
+  const displayed=photoWithDiameterEstimates(photo);
+  assert.equal(displayed.fruits[0].lidar_estimate.status,'experimental');assert.deepEqual(photo,before);
+  assert.deepEqual(displayed.fruits[0].body_contour,contour);assert.equal(displayed.fruits[0].diameter_mm,null);
+  assert.equal(samplingSummary([displayed]).avg_diameter_mm,null);
+  assert.equal(photoWithDiameterEstimates({...photo,fruits:[{...fruit,diameter_mm:82}]}).fruits[0].diameter_mm,82);
 });
