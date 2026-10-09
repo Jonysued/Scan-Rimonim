@@ -18,7 +18,7 @@ export async function savePhoto(client, foto, sessionId, variedadName, onSaved =
     for(const fruit of fruits) {
       if(fruit.localization_version!==4 || fruit.localization_status!=='seeded') continue;
       try {
-        const points=await segmentFruit(client,storage_uri,fruit.segmentation_seed);
+        const points=await segmentFruit(client,storage_uri,fruit.segmentation_seed,fruit.crown_exclusion);
         Object.assign(fruit,{localization_status:points?'located':'uncertain',body_contour:points,segmentation_model:'mediapipe-magic-touch-v2'});
       } catch(error) {fruit.localization_status='uncertain';segmentationError=error.message;}
     }
