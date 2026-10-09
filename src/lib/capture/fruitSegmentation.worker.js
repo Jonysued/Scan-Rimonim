@@ -8,14 +8,14 @@ function model() {
   })().catch(error=>{modelPromise=undefined;throw error;});
   return modelPromise;
 }
-self.onmessage=async ({data:{id,bitmap,seed}})=>{
+self.onmessage=async ({data:{id,bitmap,seed,crownExclusion}})=>{
   let mask;
   try {
     const segmenter=await model();
     segmenter.setImage(bitmap);
     // 1 = BrushMode.POSITIVE in the pinned SDK's public type declaration.
     mask=segmenter.segment([{brushMode:1,point:[seed],isCompleted:true}]);
-    const points=maskContour(mask.getAsFloat32Array(),mask.width,mask.height,seed);
+    const points=maskContour(mask.getAsFloat32Array(),mask.width,mask.height,seed,crownExclusion);
     self.postMessage({id,points});
   } catch(error) {
     // The worker only has model URLs and pixels, never credentials or signed URLs.
