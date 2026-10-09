@@ -1,12 +1,9 @@
 import React, { useState } from "react";
 import {validatedContour} from "@/lib/capture/contourGeometry";
-import {defectLabels, drawableDefect, defectCoverage} from "@/lib/capture/defectGeometry";
 
-export default function AnnotatedPhoto({ src, fruits = [], showCoverage = true }) {
+export default function AnnotatedPhoto({ src, fruits = [] }) {
   const [dims, setDims] = useState(null);
   const located = fruits.filter(f => f.localization_version === 4 && f.segmentation_model === 'mediapipe-magic-touch-v2' && f.localization_status === 'located' && validatedContour(f.body_contour));
-  const defects = fruits.flatMap(f => (f.defects || []).filter(d => defectLabels[d.type]));
-  const marked = defects.map((d, i) => ({...d, number:i+1})).filter(drawableDefect);
 
   return (
     <div className="rounded-xl overflow-hidden border border-[#eee1dc] bg-[#f4e9e5]">
@@ -20,12 +17,12 @@ export default function AnnotatedPhoto({ src, fruits = [], showCoverage = true }
           setDims({ w: img.naturalWidth, h: img.naturalHeight });
         }}
       />
-      {dims && (located.length > 0 || marked.length > 0) && (
+      {dims && located.length > 0 && (
         <svg
           viewBox={`0 0 ${dims.w} ${dims.h}`}
           className="absolute inset-0 w-full h-full pointer-events-none"
           role="img"
-          aria-label="Contorno de la fruta en verde y zonas de defectos estimadas por OpenAI en naranja"
+          aria-label="Contorno de la fruta para estimar calibre"
         >
           {located.map((f, i) => {
             const points=f.body_contour.map(p=>`${p.x*dims.w/1000},${p.y*dims.h/1000}`).join(' ');
@@ -51,29 +48,9 @@ export default function AnnotatedPhoto({ src, fruits = [], showCoverage = true }
               </g>
             );
           })}
-          {marked.map(d => {
-            const b=d.region;
-            const x=b.left*dims.w/1000, y=b.top*dims.h/1000;
-            const r=Math.max(dims.w/45, 10);
-            return <g key={d.number}>
-              <title>{d.number}. {defectLabels[d.type]} · {d.severity}</title>
-              <rect x={x} y={y} width={(b.right-b.left)*dims.w/1000} height={(b.bottom-b.top)*dims.h/1000} rx={r/3} fill="#f97316" fillOpacity="0.12" stroke="#f97316" strokeWidth={Math.max(dims.w/250,2)} strokeDasharray={d.localization_status==='tentative' ? `${r/2} ${r/3}` : undefined} />
-              <circle cx={x+r} cy={y+r} r={r} fill="#c2410c" stroke="white" strokeWidth={Math.max(dims.w/500,1)} />
-              <text x={x+r} y={y+r} textAnchor="middle" dominantBaseline="central" fill="white" fontSize={r*1.3} fontWeight="700">{d.number}</text>
-            </g>;
-          })}
         </svg>
       )}
       </div>
-      {showCoverage && fruits.length > 0 && <div className="px-3 py-2 text-xs text-[#63343b]">
-        {fruits.map((f,i) => <div key={i}>{Object.entries(defectLabels).map(([type,label]) => <p key={type}><strong>{label}:</strong> {defectCoverage(f,type) !== null ? `${Math.round(defectCoverage(f,type))}%` : 'Sin dato'}</p>)}</div>)}
-        <p className="mt-1 text-[#9b7f82]">Estimado sobre piel visible.</p>
-      </div>}
-      {defects.length > 0 && <div className="px-3 py-2 space-y-1 text-xs text-[#63343b]">
-        <p className="font-medium">Zonas detectadas</p>
-        {defects.map((d,i) => <p key={i}><span className="font-semibold text-orange-700">{i+1}.</span> {defectLabels[d.type]} · {d.severity}{d.localization_status==='tentative' && ' · aprox.'}{!drawableDefect(d) && ' · sin ubicar'}</p>)}
-        {defects.some(d=>!drawableDefect(d)) && <p className="text-[#9b7f82]">Reanalizá para ubicar las zonas.</p>}
-      </div>}
       {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno sin confirmar.</p>}
       {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">LiDAR experimental · verificar con calibre.</p>}
       {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Sin diámetro: acercá la fruta y repetí la foto.</p>}
