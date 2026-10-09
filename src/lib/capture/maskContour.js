@@ -1,6 +1,22 @@
 // Geometry comes from the learned foreground mask, not RGB thresholds.
-export function maskContour(values,w,h,seed) {
+export function maskContour(values,w,h,seed,crownExclusion=null) {
   if(values.length!==w*h || !Number.isFinite(seed?.x) || !Number.isFinite(seed?.y) || seed.x<=0 || seed.y<=0 || seed.x>=1 || seed.y>=1) return null;
+  // Remove the semantically identified calyx before component extraction. The
+  // retained boundary still comes from the learned mask, not a fitted circle.
+  const crown=Array.isArray(crownExclusion)&&crownExclusion.length>=3&&crownExclusion.length<=12&&crownExclusion.every(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1)?crownExclusion:null;
+  const inCrown=(x,y)=>{
+    if(!crown)return false;
+    let inside=false;
+    for(let i=0,j=crown.length-1;i<crown.length;j=i++) {
+      const a=crown[i],b=crown[j];
+      if((a.y>y)!==(b.y>y)&&x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)inside=!inside;
+    }
+    return inside;
+  };
+  if(crown){
+    values=Float32Array.from(values);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(inCrown((x+.5)/w,(y+.5)/h))values[y*w+x]=0;
+  }
   const start=Math.floor(seed.y*h)*w+Math.floor(seed.x*w);
   if(values[start]<.5) return null;
   const seen=new Uint8Array(w*h), queue=new Int32Array(w*h);
