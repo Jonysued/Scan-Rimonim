@@ -40,6 +40,7 @@ export default function AppShell({ children }) {
                 <Link
                   key={to}
                   to={to}
+                  onClick={event=>{if(to==='/nueva-sesion' && window.scanOfflineAvailable && window.ReactNativeWebView){event.preventDefault();window.ReactNativeWebView.postMessage(JSON.stringify({type:'offline-open'}));}}}
                   aria-current={active ? 'page' : undefined}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                     active
@@ -68,7 +69,8 @@ export default function AppShell({ children }) {
             {NAV.map(({ to, label, icon: Icon }) => {
               const active = location.pathname === to || (to === "/lotes" && location.pathname.startsWith("/bloque/"));
               return (
-                <Link key={to} to={to} aria-current={active ? 'page' : undefined} className={`flex flex-1 min-w-0 flex-col items-center justify-end gap-1 px-1 min-h-12 ${to === '/nueva-sesion' ? '-mt-5' : ''}`}>
+                <Link key={to} to={to} onClick={event=>{if(to==='/nueva-sesion' && window.scanOfflineAvailable && window.ReactNativeWebView){event.preventDefault();window.ReactNativeWebView.postMessage(JSON.stringify({type:'offline-open'}));}}}
+                  aria-current={active ? 'page' : undefined} className={`flex flex-1 min-w-0 flex-col items-center justify-end gap-1 px-1 min-h-12 ${to === '/nueva-sesion' ? '-mt-5' : ''}`}>
                   {to === '/nueva-sesion' ? <span className="w-12 h-12 rounded-full bg-[#7a1f33] text-white flex items-center justify-center shadow-md border-4 border-white"><ScanLine className="w-6 h-6" /></span> : <Icon className={`w-5 h-5 ${active ? 'text-[#7a1f33]' : 'text-slate-500'}`} />}
                   <span className={`text-[10px] leading-tight ${active || to === '/nueva-sesion' ? 'text-[#7a1f33] font-semibold' : 'text-slate-500'}`}>{label}</span>
                 </Link>
