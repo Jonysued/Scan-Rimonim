@@ -13,7 +13,7 @@ Aplicación independiente para registrar muestreos de granadas. React/Vite, Supa
 
 ## Flujo
 
-Configuración contiene variedades, fincas y lotes. Nuevo muestreo exige elegir un lote antes de capturar. Una sesión conserva ese contexto. Las fotos usan un bucket privado y enlaces temporales; una foto fallida puede reintentarse o descartarse antes de finalizar. El análisis visual estima color y defectos, y devuelve como máximo una fruta central; requiere revisión humana.
+Configuración contiene variedades, fincas y lotes. Nuevo muestreo exige elegir un lote antes de capturar. Una sesión conserva ese contexto. Las fotos usan un bucket privado y enlaces temporales; una foto fallida puede reintentarse o descartarse antes de finalizar. El análisis visual estima color y localiza la fruta para el calibre, y devuelve como máximo una fruta central; requiere revisión humana.
 
 La web mantiene el botón Tomar foto, sin círculo ni bloqueo por detección. Pide una fruta completa y enfocada. No calcula distancia física. OpenAI analiza la foto después de guardarla; la clave OPENAI_API_KEY se configura sólo en el servidor. Si el análisis falla, la foto se conserva y puede reintentarse desde el muestreo.
 
