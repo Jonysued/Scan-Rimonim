@@ -4,6 +4,42 @@ import CoreImage
 import SceneKit
 import UIKit
 
+// A capture protocol, not a claim of sensor accuracy or validated fruit sizing.
+private struct LidarDistanceGate {
+  static let targetM = 0.40
+  static let toleranceM = 0.01
+  static let holdSeconds = 0.8
+  static let maximumSpanM = 0.008
+  private var readings: [(time: TimeInterval, distance: Double)] = []
+  var stableDuration: TimeInterval {
+    guard let first = readings.first, let last = readings.last else { return 0 }
+    return last.time - first.time
+  }
+  var spanM: Double {
+    let values = readings.map { $0.distance }
+    return (values.max() ?? 0) - (values.min() ?? 0)
+  }
+  mutating func reset() { readings.removeAll() }
+  mutating func observe(_ distance: Double?, at time: TimeInterval) -> Bool {
+    guard let distance, distance.isFinite, time.isFinite,
+          abs(distance - Self.targetM) <= Self.toleranceM + 0.000001 else {
+      reset(); return false
+    }
+    if let last = readings.last {
+      if time < last.time || time - last.time > 0.35 { reset() }
+      else if time == last.time { return isStable }
+    }
+    readings.append((time, distance))
+    readings.removeAll { time - $0.time > 1.05 }
+    // Movement starts a new hold instead of keeping an old green state.
+    if spanM > Self.maximumSpanM { readings = [(time, distance)] }
+    return isStable
+  }
+  private var isStable: Bool {
+    readings.count >= 6 && stableDuration >= Self.holdSeconds && spanM <= Self.maximumSpanM
+  }
+}
+
 // The JPEG and metric depth always come from the same ARFrame. No GPS or
 // world-space camera pose is exported. Portrait pixels are rotated clockwise.
 final class LidarCaptureController: UIViewController, ARSessionDelegate {
@@ -18,6 +54,9 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
   private var finished = false
   private var lastUpdate: TimeInterval = 0
   private var readyFrame: ARFrame?
+  private var readyAtUptime: TimeInterval = 0
+  private var distanceGate = LidarDistanceGate()
+  private var exporting = false
 
   init(completion: @escaping ([String: Any]?, String?) -> Void) {
     self.completion = completion
@@ -36,7 +75,7 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
     status.textColor = .white
     status.backgroundColor = UIColor.black.withAlphaComponent(0.75)
     status.text = "LiDAR trasero · Iniciando…\nUna granada inmóvil, de frente y con buena luz."
-    captureButton.setTitle("Tomar foto con LiDAR", for: .normal)
+    captureButton.setTitle("Buscá 40 cm para tomar la foto", for: .normal)
     captureButton.backgroundColor = .systemGreen
     captureButton.setTitleColor(.black, for: .normal)
     captureButton.layer.cornerRadius = 12
@@ -70,7 +109,7 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
     cameraView.frame = view.bounds
     let safe = view.safeAreaInsets
     crosshair.frame = CGRect(x: view.bounds.midX - 20, y: view.bounds.midY - 20, width: 40, height: 40)
-    status.frame = CGRect(x: 16, y: safe.top + 12, width: view.bounds.width - 32, height: 110)
+    status.frame = CGRect(x: 16, y: safe.top + 12, width: view.bounds.width - 32, height: 145)
     captureButton.frame = CGRect(x: 24, y: view.bounds.height - safe.bottom - 114, width: view.bounds.width - 48, height: 52)
     cancelButton.frame = CGRect(x: 24, y: view.bounds.height - safe.bottom - 56, width: view.bounds.width - 48, height: 44)
   }
@@ -83,22 +122,36 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
   }
 
   func session(_ session: ARSession, didUpdate frame: ARFrame) {
-    guard frame.timestamp - lastUpdate > 0.25 else { return }
+    guard frame.timestamp - lastUpdate > 0.15 else { return }
     lastUpdate = frame.timestamp
     let trackingOK: Bool
     if case .normal = frame.camera.trackingState { trackingOK = true } else { trackingOK = false }
     DispatchQueue.main.async { [weak self] in
-      guard let self, !self.finished else { return }
-      self.readyFrame = trackingOK && frame.sceneDepth != nil ? frame : nil
-      self.captureButton.isEnabled = self.readyFrame != nil
+      guard let self, !self.finished, !self.exporting else { return }
+      self.readyFrame = nil
+      self.captureButton.isEnabled = false
+      self.captureButton.backgroundColor = .darkGray
+      self.crosshair.textColor = .white
       if trackingOK && frame.sceneDepth != nil {
         if let distance = self.centerDistance(frame) {
-          let guidance = distance < 0.30 ? "Alejá un poco el teléfono." : distance > 0.70 ? "Acercá un poco el teléfono." : "Distancia adecuada. Mantené la fruta inmóvil."
-          self.status.text = "LiDAR · Distancia al centro: ≈\(Int((distance * 100).rounded())) cm\n\(guidance)\nCentrar la fruta en +. Calibre experimental."
+          let stable = self.distanceGate.observe(distance, at: frame.timestamp)
+          let guidance = distance < LidarDistanceGate.targetM - LidarDistanceGate.toleranceM ? "Alejá el teléfono hasta 40 cm." : distance > LidarDistanceGate.targetM + LidarDistanceGate.toleranceM ? "Acercá el teléfono hasta 40 cm." : stable ? "Distancia estable. Podés tomar la foto." : "Mantené inmóviles el teléfono y la fruta (0,8 s)."
+          self.readyFrame = stable ? frame : nil
+          self.readyAtUptime = stable ? ProcessInfo.processInfo.systemUptime : 0
+          self.captureButton.isEnabled = stable
+          self.captureButton.backgroundColor = stable ? .systemGreen : .darkGray
+          self.crosshair.textColor = stable ? .systemGreen : .white
+          self.captureButton.setTitle(stable ? "Tomar foto · objetivo 40 cm" : "Buscá 40 cm y mantené inmóvil", for: .normal)
+          let measured = String(format: "%.1f", distance * 100)
+          self.status.text = "Objetivo: 40 cm · margen de captura ±1 cm\nLiDAR al centro: ≈\(measured) cm\n\(guidance)\n+ sobre la fruta, no el fondo. Calibre experimental."
         } else {
+          self.distanceGate.reset()
+          self.captureButton.setTitle("Esperando distancia fiable", for: .normal)
           self.status.text = "LiDAR · Sin distancia fiable al centro\nCentrar la fruta en +, mejorar la luz y mantenerla inmóvil."
         }
       } else {
+        self.distanceGate.reset()
+        self.captureButton.setTitle("Preparando LiDAR…", for: .normal)
         self.status.text = "Preparando LiDAR…\nMové el teléfono suavemente y buscá buena luz."
       }
     }
@@ -142,14 +195,34 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
   }
 
   @objc private func takePhoto() {
-    guard !finished, let frame = readyFrame,
-          let current = cameraView.session.currentFrame,
-          current.timestamp - frame.timestamp < 0.5 else { return }
+    guard !finished, !exporting, let ready = readyFrame,
+          ProcessInfo.processInfo.systemUptime - readyAtUptime < 0.35,
+          let frame = cameraView.session.currentFrame,
+          frame.timestamp - ready.timestamp >= 0,
+          frame.timestamp - ready.timestamp < 0.25 else { return }
+    // Recheck the actual shutter frame. Never export a previous in-range frame
+    // after the user has moved away from the capture distance.
+    guard case .normal = frame.camera.trackingState,
+          let distance = centerDistance(frame),
+          distanceGate.observe(distance, at: frame.timestamp) else {
+      readyFrame = nil
+      captureButton.isEnabled = false
+      captureButton.backgroundColor = .darkGray
+      crosshair.textColor = .white
+      status.text = "La distancia cambió. Volvé a 40 cm y mantené inmóvil."
+      return
+    }
+    exporting = true
     captureButton.isEnabled = false
     readyFrame = nil
     cameraView.session.pause()
     status.text = "Guardando foto y profundidad…"
-    let distance = centerDistance(frame)
+    let captureProtocol: [String: Any] = ["id": "lidar-front-40cm-v1", "version": 1,
+      "target_distance_m": LidarDistanceGate.targetM, "tolerance_m": LidarDistanceGate.toleranceM,
+      "measured_distance_m": distance, "distance_reference": "camera-plane-to-surface-at-reticle",
+      "required_hold_s": LidarDistanceGate.holdSeconds, "stable_duration_s": distanceGate.stableDuration,
+      "stability_span_m": distanceGate.spanM, "maximum_stability_span_m": LidarDistanceGate.maximumSpanM,
+      "range_verified": true, "precision_validation": "pending-physical-comparison"]
     processing.async { [weak self] in
       guard let self else { return }
       do {
@@ -159,7 +232,8 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
               var metadata = self.depthMetadata(frame) else {
           throw NSError(domain: "lidar", code: 1, userInfo: [NSLocalizedDescriptionKey: "No se pudo registrar la profundidad. Reintentá."])
         }
-        if let distance { metadata["distanceM"] = distance }
+        metadata["distanceM"] = distance
+        metadata["capture_protocol"] = captureProtocol
         let cache = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let url = cache.appendingPathComponent("lidar-\(UUID().uuidString).jpg")
         try jpeg.write(to: url, options: .atomic)
