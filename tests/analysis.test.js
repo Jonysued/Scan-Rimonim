@@ -29,6 +29,7 @@ async function run({role='muestreador',storage='owner/photo.jpg',aiStatus=200,fr
     assert.equal(body.store,false);
     assert.equal(body.messages[0].content[1].image_url.detail,'original');
     assert.match(body.messages[0].content[0].text,/sombra proyectada/);
+    assert.doesNotMatch(body.messages[0].content[0].text,/defect|russet|cracking|sunburn|rajado|quemadura/i);
     assert.match(body.messages[0].content[0].text,/ancho=1500 píxeles; alto=2000 píxeles/);
     return Response.json({choices:[{message:{content:JSON.stringify({fruits})}}]},{status:aiStatus});
   };
@@ -54,7 +55,6 @@ test('unactivated credits returns actionable error instead of implying a backgro
 test('retry summary reports missing analysis and missing scale without zero measurements',()=>{
   const empty=samplingSummary([{status:'listo',fruits:[]}]);
   assert.equal(empty.red_pct,null);
-  assert.equal(empty.cracking_pct,null);
   assert.equal(empty.avg_diameter_mm,null);
   assert.equal(samplingSummary([{status:'error',fruits:[]}]).red_pct,null);
   const s=samplingSummary([{status:'listo',fruits:[{color_category:'rojo',diameter_mm:null}]}]);
@@ -109,30 +109,15 @@ test('uncertain localization retains color analysis without claiming a circle or
   assert.equal(res.data.fruits[0].diameter_mm,null);
 });
 
-test('API returns defect regions separately from fruit contour and labels uncertain proposals',async()=>{
-  const {res}=await run({fruits:[{defects:[
-    {type:'russet',severity:'leve',confidence:.9,location_confidence:.95,region:{left:300,top:800,right:600,bottom:1000}},
-    {type:'cracking',severity:'media',confidence:.9,location_confidence:.4,region:{left:300,top:800,right:600,bottom:1000}},
-  ]}]});
-  assert.deepEqual(res.data.fruits[0].defects[0].region,{left:200,top:400,right:400,bottom:500});
-  assert.deepEqual(res.data.fruits[0].defects[1].region,{left:200,top:400,right:400,bottom:500});
-  assert.equal(res.data.fruits[0].defects[1].localization_status,'tentative');
-  assert.equal(res.data.fruits[0].defects[1].type,'cracking');
+test('analysis discards unsolicited fields while preserving color',async()=>{
+  const {res}=await run({fruits:[{color_category:'rojo',red_coverage_pct:70,color_score:85,defects:[{type:'cracking',severity:'grave'}],russet_coverage_pct:30,defect_coverage_pct:{russet:30,sunburn:20,cracking:10}}]});
+  const fruit=res.data.fruits[0];
+  assert.equal(fruit.red_coverage_pct,70);
+  assert.equal(fruit.color_category,'rojo');
+  for(const field of ['defects','russet_coverage_pct','defect_coverage_pct','defect_coverage_version','russet_analysis_version']) assert.equal(Object.hasOwn(fruit,field),false);
 });
 
-
-test('russet surface is fruit-level coverage, preserves zero and rejects unknown or invalid values',async()=>{
-  for(const [input,expected] of [[0,0],[18.5,18.5],[100,100],[null,null],[undefined,null],[-1,null],[101,null],["25",null]]){
-    const {res}=await run({fruits:[{russet_coverage_pct:input,defects:[{type:'russet',severity:'leve'},{type:'russet',severity:'media'}]}]});
-    assert.equal(res.data.fruits[0].russet_coverage_pct,expected);
-    assert.equal(res.data.fruits[0].russet_coverage_basis,'visible_skin');
-    assert.equal(res.data.fruits[0].defects.length,2);
-  }
-});
-
-test('each defect has independent visible coverage and missing values are never fabricated',async()=>{
-  const {res}=await run({fruits:[{defect_coverage_pct:{russet:18,sunburn:0,cracking:1.5}}]});
-  assert.deepEqual(res.data.fruits[0].defect_coverage_pct,{russet:18,sunburn:0,cracking:1.5});
-  const {res:unknown}=await run({fruits:[{defect_coverage_pct:{russet:101,sunburn:'20',cracking:null}}]});
-  assert.deepEqual(unknown.data.fruits[0].defect_coverage_pct,{russet:null,sunburn:null,cracking:null});
+test('historical results aggregate only color and calibre',()=>{
+  const summary=samplingSummary([{status:'listo',fruits:[{color_category:'rojo',diameter_mm:80,defects:[{type:'cracking'}],russet_coverage_pct:30}]}]);
+  assert.deepEqual(summary,{status:'listo',photo_count:1,fruit_count:1,avg_diameter_mm:80,red_pct:100});
 });
