@@ -2,7 +2,7 @@ import {validatedContour} from './contourGeometry.js';
 
 // Experimental spherical-body fit in camera coordinates, not a validated
 // commercial calibre. Depth and normalized contour refer to the same JPEG.
-export function estimateLidarDiameter(metadata, contour) {
+function estimateSphereDiameter(metadata, contour) {
   const reject = reason => ({status:'unavailable',reason});
   const ring = validatedContour(contour);
   if(!ring || metadata?.source!=='arkit-scene-depth' || metadata.version!==1 || metadata.orientation!=='portrait-clockwise') return reject('missing_depth');
@@ -67,4 +67,52 @@ export function estimateLidarDiameter(metadata, contour) {
   return {status:'experimental',diameter_mm:Math.round(radius*20)/10,
     method:'lidar-sphere-fit-v1',assumption:'spherical-body',sample_count:cloud.length,
     residual_p90_mm:Math.round(residual*100)/100,validation:'pending-physical-comparison'};
+}
+
+// LiDAR may smooth the shallow curvature of a fruit. In that case use its
+// unchanged image silhouette and central surface depth instead of fitting the
+// depth curvature. Approximate the silhouette plane half a diameter behind the
+// front surface: D = angularWidth * (surfaceZ + D/2). This is an experimental
+// rounded-body assumption, not a calibrated measurement or commercial count.
+export function estimateLidarDiameter(metadata, contour) {
+  const fitted=estimateSphereDiameter(metadata,contour);
+  if(fitted.status==='experimental' || !['flat_depth','implausible_shape','irregular_depth'].includes(fitted.reason)) return fitted;
+  const ring=validatedContour(contour),{width:w,height:h,depth_mm:depth,confidence,intrinsics:k}=metadata;
+  const left=Math.min(...ring.map(p=>p.x))*w/1000,right=Math.max(...ring.map(p=>p.x))*w/1000;
+  const top=Math.min(...ring.map(p=>p.y))*h/1000,bottom=Math.max(...ring.map(p=>p.y))*h/1000;
+  if(left<=1||right>=w-1||top<=1||bottom>=h-1)return {status:'unavailable',reason:'clipped_contour'};
+  const inside=(x,y)=>{let hit=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const a=ring[i],b=ring[j],px=x*1000/w,py=y*1000/h;
+    if((a.y>py)!==(b.y>py)&&px<(b.x-a.x)*(py-a.y)/(b.y-a.y)+a.x)hit=!hit;
+  }return hit;};
+  const values=[];let candidates=0;
+  for(let y=Math.ceil(top+(bottom-top)*.3);y<bottom-(bottom-top)*.3;y++){
+    for(let x=Math.ceil(left+(right-left)*.3);x<right-(right-left)*.3;x++){
+      if(!inside(x,y))continue;candidates++;
+      const i=y*w+x,z=depth[i];
+      if(confidence[i]===2&&Number.isFinite(z)&&z>=250&&z<=800)values.push(z);
+    }
+  }
+  if(values.length<25||values.length/candidates<.8)return {status:'unavailable',reason:'insufficient_confidence'};
+  values.sort((a,b)=>a-b);
+  const q=fraction=>values[Math.floor((values.length-1)*fraction)];
+  if(q(.9)-q(.1)>35)return {status:'unavailable',reason:'mixed_surface_depth'};
+  const surfaceZ=q(.5),angularWidth=(right-left)/k.fx;
+  const diameter=angularWidth*surfaceZ/(1-angularWidth/2);
+  if(!Number.isFinite(diameter)||diameter<30||diameter>150)return {status:'unavailable',reason:'implausible_size'};
+  return {status:'experimental',diameter_mm:Math.round(diameter*10)/10,
+    method:'lidar-contour-width-v2',assumption:'rounded-body-silhouette-plane',
+    surface_depth_mm:surfaceZ,sample_count:values.length,
+    depth_spread_p10_p90_mm:q(.9)-q(.1),validation:'pending-physical-comparison'};
+}
+
+// Recalculate for display from stored depth and the original confirmed contour.
+// Do not resegment the photo, overwrite manual measurements, or turn estimates
+// into validated calibre averages. Old photos can benefit without new AI calls.
+export function photoWithDiameterEstimates(photo){
+  return {...photo,fruits:(photo.fruits||[]).map(fruit=>{
+    if(Number.isFinite(fruit.diameter_mm)&&fruit.diameter_mm>0)return fruit;
+    if(fruit.localization_version!==4||fruit.localization_status!=='located'||fruit.segmentation_model!=='mediapipe-magic-touch-v2')return fruit;
+    return {...fruit,lidar_estimate:estimateLidarDiameter(photo.capture_metadata,fruit.body_contour)};
+  })};
 }
