@@ -26,6 +26,17 @@ test('intrinsics and grid aspect changes preserve metric scale',()=>{
   const {metadata,contour}=sphere({portrait:false});
   assert.ok(Math.abs(estimateLidarDiameter(metadata,contour).diameter_mm-80)<4);
 });
+test('40 cm surface capture uses measured depth, not a fixed diameter or nominal distance',()=>{
+  for(const radius of [30,40,55])for(const surfaceDistance of [390,400,410]){
+    const {metadata,contour}=sphere({radius,z:surfaceDistance+radius});
+    metadata.distanceM=surfaceDistance/1000;
+    metadata.capture_protocol={id:'lidar-front-40cm-v1',target_distance_m:.4,tolerance_m:.01,measured_distance_m:metadata.distanceM};
+    const result=estimateLidarDiameter(metadata,contour);
+    assert.equal(result.status,'experimental');
+    assert.ok(Math.abs(result.diameter_mm-radius*2)<4,JSON.stringify(result));
+    assert.equal(result.validation,'pending-physical-comparison');
+  }
+});
 test('flat depth, weak confidence, missing data and contour mismatch never produce diameter',()=>{
   const {metadata,contour}=sphere();
   for(const m of [null,{...metadata,depth_mm:Array(metadata.width*metadata.height).fill(500)},
