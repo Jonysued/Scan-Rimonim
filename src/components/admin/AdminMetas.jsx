@@ -3,17 +3,15 @@ import { appClient } from "@/api/appClient";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function AdminMetas({ metas, bloques, onRefresh }) {
-  const [form, setForm] = useState({ bloque_id: "", target_diameter_mm: "", max_cracking_pct: "", max_sunburn_pct: "" });
+  const [form, setForm] = useState({ bloque_id: "", target_diameter_mm: "" });
 
   const add = async () => {
     if (!form.bloque_id) return;
     await appClient.entities.MetaBloque.create({
       bloque_id: form.bloque_id,
       target_diameter_mm: form.target_diameter_mm ? Number(form.target_diameter_mm) : undefined,
-      max_cracking_pct: form.max_cracking_pct ? Number(form.max_cracking_pct) : undefined,
-      max_sunburn_pct: form.max_sunburn_pct ? Number(form.max_sunburn_pct) : undefined,
     });
-    setForm({ bloque_id: "", target_diameter_mm: "", max_cracking_pct: "", max_sunburn_pct: "" });
+    setForm({ bloque_id: "", target_diameter_mm: "" });
     onRefresh();
   };
   const remove = async (id) => {
@@ -38,20 +36,6 @@ export default function AdminMetas({ metas, bloques, onRefresh }) {
             value={form.target_diameter_mm}
             onChange={(e) => setForm({ ...form, target_diameter_mm: e.target.value })}
             placeholder="Calibre objetivo mm"
-            type="number"
-            className="flex-1 rounded-xl border border-[#eee1dc] px-3 py-2 text-sm"
-          />
-          <input
-            value={form.max_cracking_pct}
-            onChange={(e) => setForm({ ...form, max_cracking_pct: e.target.value })}
-            placeholder="Máx rajado %"
-            type="number"
-            className="flex-1 rounded-xl border border-[#eee1dc] px-3 py-2 text-sm"
-          />
-          <input
-            value={form.max_sunburn_pct}
-            onChange={(e) => setForm({ ...form, max_sunburn_pct: e.target.value })}
-            placeholder="Máx sunburn %"
             type="number"
             className="flex-1 rounded-xl border border-[#eee1dc] px-3 py-2 text-sm"
           />
