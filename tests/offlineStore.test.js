@@ -18,7 +18,8 @@ test('captured photo and LiDAR survive closing/reopening through durable manifes
  const f=await fixture();await f.store.saveSample(sample);
  const saved=await f.store.saveCapture(sample,{uri:'file://cache/shot.jpg',depthCapture:{distanceM:.4}});
  const reopened=await f.store.samples();assert.deepEqual(reopened,[saved]);
- assert.equal(f.files.get(saved.photos[0].uri),'JPEG');assert.equal(f.files.has('file://cache/shot.jpg'),false);
+ assert.equal(f.files.get(f.store.photoUri(saved.photos[0])),'JPEG');assert.equal(f.files.has('file://cache/shot.jpg'),false);
+ assert.equal(saved.photos[0].uri,'photo-1.jpg');
  assert.deepEqual(reopened[0].photos[0].metadata,{distanceM:.4});
 });
 test('failed manifest write does not claim a saved photo or destroy the source and old draft',async()=>{
@@ -28,6 +29,29 @@ test('failed manifest write does not claim a saved photo or destroy the source a
 });
 test('local copies are preserved until a durable sync receipt commits',async()=>{
  const f=await fixture();const saved=await f.store.saveCapture(sample,{uri:'file://cache/shot.jpg',depthCapture:null});
- f.fail();await assert.rejects(f.store.completeSample(saved),/disk full/);assert.equal(f.files.has(saved.photos[0].uri),true);
- f.recover();await f.store.completeSample(saved);assert.deepEqual(await f.store.samples(),[]);assert.equal(f.files.has(saved.photos[0].uri),false);
+ f.fail();await assert.rejects(f.store.completeSample(saved),/disk full/);assert.equal(f.files.has(f.store.photoUri(saved.photos[0])),true);
+ f.recover();await f.store.completeSample(saved);assert.deepEqual(await f.store.samples(),[]);assert.equal(f.files.has(f.store.photoUri(saved.photos[0])),false);
+});
+test('legacy absolute photo paths recover after the iOS container moves',async()=>{
+ const f=await fixture();
+ const photo={id:'0019113b-6ce6-4d74-8614-516088ba3015',uri:'file:///var/mobile/Containers/Data/Application/OLD/Documents/ScanOffline/0019113b-6ce6-4d74-8614-516088ba3015.jpg',captured_at:sample.started_at,metadata:{distanceM:.4}};
+ const legacy={...sample,ended_at:sample.started_at,photos:[photo]};
+ f.files.set('file://documents/ScanOffline/sample-sample-id.json',JSON.stringify(legacy));
+ f.files.set(f.store.photoUri(photo),'JPEG');
+ const [reopened]=await f.store.samples();
+ assert.equal(await f.store.photoBase64(photo),'JPEG');
+ assert.equal(await f.store.photoBase64(reopened.photos[0]),'JPEG');
+ assert.equal(reopened.photos[0].uri,photo.id+'.jpg');
+ await f.store.saveSample(reopened);
+ assert.equal(f.files.get('file://documents/ScanOffline/sample-sample-id.json').includes('/OLD/'),false);
+ await f.store.completeSample(reopened);assert.equal(f.files.has(f.store.photoUri(photo)),false);
+});
+test('missing local photo reports a recoverable error without deleting the manifest',async()=>{
+ const f=await fixture();const saved=await f.store.saveCapture(sample,{uri:'file://cache/shot.jpg',depthCapture:null});
+ f.files.delete(f.store.photoUri(saved.photos[0]));
+ await assert.rejects(f.store.photoBase64(saved.photos[0]),/No se encontró la foto pendiente/);
+ assert.deepEqual(await f.store.samples(),[saved]);
+});
+test('invalid photo identifiers cannot access files outside ScanOffline',async()=>{
+ const f=await fixture();assert.throws(()=>f.store.photoUri({id:'../catalog',uri:'file://cache/shot.jpg'}),/inválido/);
 });
