@@ -17,7 +17,7 @@ export default function OfflineBridge() {
       } catch { /* Keep the last complete catalog if the connection drops. */ }
     };
     window.scanOfflineSync=async message=>{
-      if(busy.current)return;
+      if(busy.current){post({type:'offline-ack',requestId:message.requestId,status:'error',error:'Hay una sincronización en curso. Las fotos siguen guardadas; se reintentará.'});return;}
       busy.current=true;
       try {const result=await syncOfflineOperation(appClient,user,message);post({type:'offline-ack',requestId:message.requestId,...result});}
       catch(error){post({type:'offline-ack',requestId:message.requestId,status:'error',error:error.message});}
