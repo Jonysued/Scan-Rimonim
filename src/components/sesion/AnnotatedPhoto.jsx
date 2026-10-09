@@ -43,7 +43,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
                   strokeWidth={Math.max(dims.w / 200, 2)}
                   paintOrder="stroke"
                 >
-                  {Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status==='experimental' ? `≈${Math.round(f.lidar_estimate.diameter_mm)} mm · experimental` : "Sin calibre medido"}
+                  {Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status==='experimental' ? `≈${Math.round(f.lidar_estimate.diameter_mm)} mm` : "Sin calibre medido"}
                 </text>
               </g>
             );
@@ -52,8 +52,8 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
       )}
       </div>
       {fruits.length > 0 && located.length === 0 && <p className="px-2 py-1 text-xs text-[#9b7f82]">Contorno sin confirmar.</p>}
-      {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">LiDAR experimental · verificar con calibre.</p>}
-      {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Sin diámetro: acercá la fruta y repetí la foto.</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='experimental') && <p className="px-2 py-1 text-xs text-[#9b7f82]">Diámetro estimado · corroborar con calibre manual.</p>}
+      {fruits.some(f=>f.lidar_estimate?.status==='unavailable' && f.lidar_estimate.reason!=='missing_depth') && <p className="px-2 py-1 text-xs text-[#9b7f82]">No se pudo estimar el diámetro de esta foto.</p>}
     </div>
   );
 }
