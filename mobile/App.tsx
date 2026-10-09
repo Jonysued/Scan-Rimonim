@@ -32,6 +32,7 @@ export default function App(){
     await syncStep('Creando muestra de '+sample.bloqueName+'…','session',sample);
     for(const photo of sample.photos){
      if(photo.synced)continue;
+     setSyncStatus('Leyendo foto guardada '+(sample.photos.findIndex(p=>p.id===photo.id)+1)+' de '+sample.photos.length+'…');
      const base64=await Offline.photoBase64(photo);await syncStep('Subiendo y analizando foto '+(sample.photos.findIndex(p=>p.id===photo.id)+1)+' de '+sample.photos.length+'…','photo',sample,{...photo,uri:undefined,base64});
      sample={...sample,photos:sample.photos.map(p=>p.id===photo.id?{...p,synced:true}:p)};await Offline.saveSample(sample);
     }
