@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useAuth} from '@/lib/AuthContext';
 import {appClient} from '@/api/appClient';
 import {syncOfflineOperation} from '@/lib/capture/offlineSync';
@@ -6,6 +6,7 @@ const post = data => window.ReactNativeWebView?.postMessage(JSON.stringify(data)
 export default function OfflineBridge() {
   const {user,isLoadingAuth,authError}=useAuth();
   const busy=useRef(false);
+  const [syncError,setSyncError]=useState('');
   useEffect(()=>{
     if(!window.ReactNativeWebView || isLoadingAuth) return;
     if(!user) {if(!authError)post({type:'offline-signed-out'});return;}
@@ -19,8 +20,8 @@ export default function OfflineBridge() {
     window.scanOfflineSync=async message=>{
       if(busy.current){post({type:'offline-ack',requestId:message.requestId,status:'error',error:'Hay una sincronización en curso. Las fotos siguen guardadas; se reintentará.'});return;}
       busy.current=true;
-      try {const result=await syncOfflineOperation(appClient,user,message);post({type:'offline-ack',requestId:message.requestId,...result});}
-      catch(error){post({type:'offline-ack',requestId:message.requestId,status:'error',error:error.message});}
+      try {const result=await syncOfflineOperation(appClient,user,message);setSyncError('');post({type:'offline-ack',requestId:message.requestId,...result});}
+      catch(error){const stage={session:'crear la muestra',photo:'subir o analizar la foto',finish:'confirmar la muestra'}[message.operation]||'sincronizar';const detail=`No se pudo ${stage}: ${error.message || 'Error de conexión.'}`;setSyncError(detail);post({type:'offline-ack',requestId:message.requestId,status:'error',error:detail});}
       finally{busy.current=false;}
     };
     post({type:'offline-ready',ownerId:user.id});
@@ -29,5 +30,10 @@ export default function OfflineBridge() {
     const timer=setInterval(refresh,60000);
     return()=>{alive=false;clearInterval(timer);window.removeEventListener('online',refresh);delete window.scanOfflineSync;};
   },[user,isLoadingAuth,authError]);
-  return null;
+  if(!syncError)return null;
+  return <div role="alert" className="fixed bottom-20 left-3 right-3 z-50 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 shadow-lg">
+    <p>{syncError}</p><p className="mt-1">Las fotos siguen guardadas en el teléfono.</p>
+    <button className="mt-2 underline font-semibold" onClick={()=>post({type:'offline-open'})}>Ver muestras pendientes</button>
+    <button aria-label="Cerrar aviso de sincronización" className="ml-4 underline" onClick={()=>setSyncError('')}>Cerrar</button>
+  </div>;
 }
