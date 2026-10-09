@@ -67,9 +67,6 @@ export default function Comparar() {
             </div>
             <Metric label="Calibre medio" a={sesionA.avg_diameter_mm} b={sesionB.avg_diameter_mm} suffix=" mm" />
             <Metric label="% Rojo" a={sesionA.red_pct} b={sesionB.red_pct} suffix="%" />
-            <Metric label="% Rajado" a={sesionA.cracking_pct} b={sesionB.cracking_pct} suffix="%" />
-            <Metric label="% Sunburn" a={sesionA.sunburn_pct} b={sesionB.sunburn_pct} suffix="%" />
-            <Metric label="% Russet" a={sesionA.russet_pct} b={sesionB.russet_pct} suffix="%" />
           </div>
         ) : (
           <p className="text-sm text-[#b79a9d] py-16 text-center">Elegí dos sesiones para comparar.</p>

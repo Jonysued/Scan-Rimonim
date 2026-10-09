@@ -9,7 +9,6 @@ import {Dialog, DialogContent, DialogTitle, DialogDescription} from "@/component
 import {toast} from "sonner";
 import moment from "moment";
 import {savePhoto,samplingSummary} from "@/lib/capture/savePhoto";
-import {defectCoverage} from "@/lib/capture/defectGeometry";
 import {useAuth} from "@/lib/AuthContext";
 
 export default function SesionResultado() {
@@ -81,10 +80,6 @@ export default function SesionResultado() {
 
   const expandedPhoto = fotos.find(f => f.id === expandedPhotoId);
   const colorLabels = {verde: 'Verde', rosado: 'Rosado', rojo: 'Rojo', rojo_oscuro: 'Rojo oscuro'};
-  const crackingSeverity = fruit => {
-    const severities = (fruit.defects || []).filter(d => d.type === 'cracking').map(d => d.severity);
-    return ['grave', 'media', 'leve'].find(level => severities.includes(level));
-  };
   const percent = value => Number.isFinite(value) ? `${Math.round(value)}%` : '—';
   const fruitValues = (foto, render) => (foto.fruits || []).length
     ? foto.fruits.map((fruit, index) => <div key={index} className="py-0.5">{foto.fruits.length > 1 && <span className="text-[#9b7f82]">{index + 1}. </span>}{render(fruit)}</div>)
@@ -123,7 +118,7 @@ export default function SesionResultado() {
             <table className="w-full text-sm text-left whitespace-nowrap">
               <caption className="sr-only">Resultados por foto del muestreo</caption>
               <thead className="bg-[#faf5f2] text-[#63343b]">
-                <tr>{['Foto', 'Rojo', 'Rajado', 'Russet / roña', 'Hora', 'Diámetro', 'Color', 'Quemadura de sol', 'Análisis'].map(label => <th key={label} scope="col" className="px-2 md:px-3 py-3 font-medium">{label}</th>)}</tr>
+                <tr>{['Foto', 'Rojo', 'Hora', 'Calibre', 'Color', 'Análisis'].map(label => <th key={label} scope="col" className="px-2 md:px-3 py-3 font-medium">{label}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-[#eee1dc] text-[#2a1a1d]">
                 {fotos.map((foto, index) => <tr key={foto.id} className="hover:bg-[#fdfaf8]">
@@ -136,12 +131,10 @@ export default function SesionResultado() {
 
                   <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => percent(f.red_coverage_pct))}</td>
 
-                  {['cracking', 'russet'].map(type => <td key={type} className="px-2 md:px-3 py-2">{fruitValues(foto, f => <>{percent(defectCoverage(f, type))}{type === 'cracking' && crackingSeverity(f) && <span className={`ml-1 text-xs rounded px-1.5 py-0.5 ${crackingSeverity(f) === 'grave' ? 'text-amber-800 bg-amber-50' : 'text-slate-600 bg-slate-100'}`}>{crackingSeverity(f)}</span>}</>)}</td>)}
 
                   <td className="px-2 md:px-3 py-2 text-[#9b7f82]">{foto.captured_at ? moment(foto.captured_at).format('HH:mm') : '—'}</td>
                   <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => Number.isFinite(f.diameter_mm) ? `${Math.round(f.diameter_mm)} mm` : f.lidar_estimate?.status === 'experimental' && Number.isFinite(f.lidar_estimate.diameter_mm) ? <span title="LiDAR experimental">≈{Math.round(f.lidar_estimate.diameter_mm)} mm*</span> : '—')}</td>
                   <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => colorLabels[f.color_category] || '—')}</td>
-                  <td className="px-2 md:px-3 py-2">{fruitValues(foto, f => percent(defectCoverage(f, 'sunburn')))}</td>
                   <td className="px-2 md:px-3 py-2">
                     <div className="flex flex-col items-start gap-1">
                       {foto.status !== 'listo' && <span className="text-xs text-amber-800">Pendiente</span>}
@@ -150,17 +143,17 @@ export default function SesionResultado() {
                     </div>
                   </td>
                 </tr>)}
-                {!fotos.length && <tr><td colSpan={9} className="p-6 text-center text-[#9b7f82]">Sin fotos registradas.</td></tr>}
+                {!fotos.length && <tr><td colSpan={6} className="p-6 text-center text-[#9b7f82]">Sin fotos registradas.</td></tr>}
               </tbody>
             </table>
           </div>
-          <p className="px-4 py-3 text-xs text-[#9b7f82] border-t border-[#eee1dc]">Porcentajes sobre piel visible · — sin dato · * LiDAR experimental. Tocá la foto para ampliarla.</p>
+          <p className="px-4 py-3 text-xs text-[#9b7f82] border-t border-[#eee1dc]">Rojo sobre piel visible · — sin dato · * LiDAR experimental. Tocá la foto para ampliarla.</p>
         </div>
         <Dialog open={Boolean(expandedPhoto)} onOpenChange={open => {if (!open) setExpandedPhotoId(null);}}>
           <DialogContent className="w-[calc(100%-1rem)] max-w-3xl max-h-[92dvh] overflow-y-auto rounded-xl p-4">
             <DialogTitle>Foto {fotos.findIndex(f => f.id === expandedPhotoId) + 1}</DialogTitle>
-            <DialogDescription className="sr-only">Foto ampliada con contorno y zonas de defectos.</DialogDescription>
-            {expandedPhoto && <AnnotatedPhoto src={expandedPhoto.signed_url} fruits={expandedPhoto.fruits || []} showCoverage={false} />}
+            <DialogDescription className="sr-only">Foto ampliada con contorno para calibre.</DialogDescription>
+            {expandedPhoto && <AnnotatedPhoto src={expandedPhoto.signed_url} fruits={expandedPhoto.fruits || []} />}
           </DialogContent>
         </Dialog>
       </div>

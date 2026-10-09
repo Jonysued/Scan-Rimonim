@@ -1,4 +1,3 @@
-import { defectLabels, defectCoverage } from "@/lib/capture/defectGeometry";
 import { measuredMean } from "@/lib/capture/metrics";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
@@ -50,16 +49,13 @@ export default function BloqueDetalle() {
   if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
 
   const exportCsv = () => {
-    const rows = [["Fecha", "Frutos", "Media mm", "% Rojo", "% Rajado", "% Sunburn", "% Russet"]];
+    const rows = [["Fecha", "Frutos", "Media mm", "% Rojo"]];
     listas.forEach((s) =>
       rows.push([
         moment(s.started_at).format("YYYY-MM-DD"),
         s.fruit_count || 0,
         s.avg_diameter_mm?.toFixed(1) ?? "",
         (s.red_pct || 0).toFixed(1),
-        (s.cracking_pct || 0).toFixed(1),
-        (s.sunburn_pct || 0).toFixed(1),
-        (s.russet_pct || 0).toFixed(1),
       ])
     );
     const csv = rows.map((r) => r.join(",")).join("\n");
@@ -83,18 +79,6 @@ export default function BloqueDetalle() {
   const idsSemana = new Set(sesionesSemana.map((s) => s.id));
   const fotosSemana = fotos.filter((f) => idsSemana.has(f.session_id));
   const frutosSemana = fotosSemana.flatMap((f) => f.fruits || []);
-  const frutosAnalizados = fotosSemana.filter(f => f.status === "listo").flatMap(f => f.fruits || []);
-  const resumenDefectos = Object.entries(defectLabels).map(([type, label]) => {
-    const evaluados = frutosAnalizados.filter(f => Array.isArray(f.defects));
-    const afectados = evaluados.filter(f => f.defects.some(d => d.type === type)).length;
-    const coberturas = frutosAnalizados.map(f => defectCoverage(f, type)).filter(v => v !== null);
-    return {
-      type, label,
-      incidencia: evaluados.length ? afectados / evaluados.length * 100 : null,
-      cobertura: coberturas.length ? coberturas.reduce((a, b) => a + b, 0) / coberturas.length : null,
-      cantidad: coberturas.length,
-    };
-  });
   const avgDiamSemana = measuredMean(frutosSemana.map(f => f.diameter_mm)) ?? measuredMean(sesionesSemana.map(s => s.avg_diameter_mm));
 
   return (
@@ -166,24 +150,6 @@ export default function BloqueDetalle() {
             </div>
           )}
         </div>
-
-        <section aria-label="Resumen de defectos" className="bg-white rounded-xl border border-[#e5e7eb] p-4 mb-4">
-          <h2 className="text-sm font-semibold text-[#1f2937] mb-2">Defectos · semana {semanaActual?.split("W")[1] || "—"}</h2>
-          <table className="w-full text-xs text-[#374151]">
-            <thead><tr className="text-[#6b7280] border-b border-[#f3f4f6]">
-              <th scope="col" className="text-left py-2 font-medium">Defecto</th>
-              <th scope="col" className="text-right py-2 font-medium">Frutos afectados</th>
-              <th scope="col" className="text-right py-2 font-medium">Piel afectada</th>
-            </tr></thead>
-            <tbody>{resumenDefectos.map(d => <tr key={d.type} className="border-b border-[#f3f4f6] last:border-0">
-              <th scope="row" className="text-left py-2 font-medium">{d.label}</th>
-              <td className="text-right py-2">{d.incidencia === null ? "—" : `${d.incidencia.toFixed(1)}%`}</td>
-              <td className="text-right py-2">{d.cobertura === null ? "—" : `${d.cobertura.toFixed(1)}%`}</td>
-            </tr>)}</tbody>
-          </table>
-          <p className="text-[11px] text-[#9b7f82] mt-2">Piel: promedio visible estimado. Sin dato = —.</p>
-          {resumenDefectos.some(d => d.cantidad < frutosAnalizados.length) && <p className="text-[11px] text-[#9b7f82] mt-1">Promedio sobre frutos con dato; reanalizá las fotos pendientes.</p>}
-        </section>
 
         {/* Estructura de calibre + Color */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

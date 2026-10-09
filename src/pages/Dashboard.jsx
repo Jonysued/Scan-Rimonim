@@ -4,7 +4,7 @@ import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import KpiCard from "@/components/dashboard/KpiCard";
 import AlertasPanel from "@/components/dashboard/AlertasPanel";
-import { Apple, Ruler, AlertTriangle, Camera } from "lucide-react";
+import { Apple, Ruler, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import { useAuth } from "@/lib/AuthContext";
@@ -36,10 +36,6 @@ export default function Dashboard() {
   const hoy = sesiones.filter((s) => moment(s.started_at).isSame(moment(), "day"));
   const listas = sesiones.filter((s) => s.status === "listo");
   const totalFrutos = listas.reduce((acc, s) => acc + (s.fruit_count || 0), 0);
-  const evaluadas = listas.filter(s => s.fruit_count > 0 && Number.isFinite(s.cracking_pct));
-  const avgRajado = evaluadas.length
-    ? evaluadas.reduce((acc, s) => acc + s.cracking_pct, 0) / evaluadas.length
-    : null;
   const avgCalibre = measuredMean(listas.map(s => s.avg_diameter_mm));
 
   const alertas = [];
@@ -48,12 +44,6 @@ export default function Dashboard() {
     if (!meta) return;
     if (meta.target_diameter_mm && Number.isFinite(s.avg_diameter_mm) && s.avg_diameter_mm < meta.target_diameter_mm - 3) {
       alertas.push({ title: "Calibre bajo vs. meta", bloque_id: s.bloque_id, bloque_name: bloqueName(s.bloque_id) });
-    }
-    if (meta.max_cracking_pct != null && s.cracking_pct > meta.max_cracking_pct) {
-      alertas.push({ title: "Rajado por encima de la meta", bloque_id: s.bloque_id, bloque_name: bloqueName(s.bloque_id) });
-    }
-    if (meta.max_sunburn_pct != null && s.sunburn_pct > meta.max_sunburn_pct) {
-      alertas.push({ title: "Golpe de sol elevado", bloque_id: s.bloque_id, bloque_name: bloqueName(s.bloque_id) });
     }
   });
 
@@ -72,16 +62,9 @@ export default function Dashboard() {
           <div className="py-24 text-center text-[#b79a9d]">Cargando...</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
               <KpiCard label="Muestreos hoy" value={hoy.length} icon={Camera} />
               <KpiCard label="Frutos medidos" value={totalFrutos.toLocaleString()} icon={Apple} />
-              <KpiCard
-                label="Rajado promedio"
-                value={avgRajado?.toFixed(1) ?? "—"}
-                suffix="%"
-                icon={AlertTriangle}
-                tone={avgRajado > 10 ? "warn" : "good"}
-              />
               <KpiCard label="Calibre medio" value={avgCalibre?.toFixed(0) ?? "—"} suffix="mm" icon={Ruler} />
             </div>
 
