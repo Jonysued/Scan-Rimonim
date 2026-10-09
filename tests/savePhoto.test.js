@@ -44,3 +44,14 @@ test('storage failure is a real save failure and never invokes analysis',async (
   assert.equal(s.rows.size,0);
   assert.equal(s.events.length,0);
 });
+
+
+test('a failed reanalysis keeps an already analyzed photo intact',async()=>{
+  const s=setup();
+  const prior={status:'listo',fruits:[{body_contour:[{x:1,y:2}],color_category:'rojo'}],fruit_count_estimate:1};
+  s.rows.set('photo-1',structuredClone(prior));
+  const result=await savePhoto(s.client,{photoId:'photo-1',storage_uri:'owner/photo.jpg'},'session-1');
+  assert.equal(result.analysisError,'Servicio no disponible');
+  assert.deepEqual(s.rows.get('photo-1'),prior);
+  assert.deepEqual(s.events,['analyze']);
+});
