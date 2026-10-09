@@ -23,3 +23,26 @@ test('ignores disconnected foreground objects instead of merging them into the f
   const values=mask();values[5*w+5]=1;
   assert.deepEqual(maskContour(values,w,h,seed),maskContour(mask(),w,h,seed));
 });
+
+test('excludes an attached crown in any orientation without changing the body mask',()=>{
+  const body=mask();
+  for(const side of ['top','right']){
+    const values=Float32Array.from(body);
+    const crown=side==='top'?[{x:70/w,y:35/h},{x:90/w,y:35/h},{x:90/w,y:59/h},{x:70/w,y:59/h}]:[{x:115/w,y:90/h},{x:140/w,y:90/h},{x:140/w,y:110/h},{x:115/w,y:110/h}];
+    if(side==='top')for(let y=35;y<59;y++)for(let x=70;x<90;x++)values[y*w+x]=1;
+    else for(let y=90;y<110;y++)for(let x=115;x<140;x++)values[y*w+x]=1;
+    const original=Float32Array.from(values);
+    assert.notDeepEqual(maskContour(values,w,h,seed),maskContour(body,w,h,seed));
+    const clean=maskContour(values,w,h,seed,crown);
+    assert.ok(validatedContour(clean));
+    assert.ok(Math.min(...clean.map(p=>p.y))>=58*1000/h);
+    assert.ok(Math.max(...clean.map(p=>p.x))<=116*1000/w);
+    assert.ok(Math.abs(Math.max(...clean.map(p=>p.x))-Math.max(...maskContour(body,w,h,seed).map(p=>p.x)))<7);
+    assert.deepEqual(values,original);
+  }
+});
+test('invalid crown geometry is ignored and a crown covering the seed cannot invent a body',()=>{
+  const values=mask();
+  assert.deepEqual(maskContour(values,w,h,seed,[{x:NaN,y:0},{x:0,y:1},{x:1,y:1}]),maskContour(values,w,h,seed));
+  assert.equal(maskContour(values,w,h,seed,[{x:.4,y:.4},{x:.6,y:.4},{x:.6,y:.6},{x:.4,y:.6}]),null);
+});
