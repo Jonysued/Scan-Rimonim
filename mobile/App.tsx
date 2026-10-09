@@ -18,22 +18,26 @@ export default function App(){
   const requestId=Offline.newId();
   const response=new Promise<any>((resolve,reject)=>{const timer=setTimeout(()=>{replies.current.delete(requestId);reject(new Error('Conexión interrumpida. La muestra sigue guardada en el teléfono.'));},180000);replies.current.set(requestId,{resolve,reject,timer});});
   const message={requestId,operation,ownerId:sample.ownerId,sample:{...sample,photos:undefined,photo_count:sample.photos.length},photo};
-  ref.current?.injectJavaScript(`window.scanOfflineSync?.(${JSON.stringify(message)});true;`);
+  ref.current?.injectJavaScript(`if(window.scanOfflineSync){window.scanOfflineSync(${JSON.stringify(message)});}else{window.ReactNativeWebView.postMessage(${JSON.stringify(JSON.stringify({type:'offline-ack',requestId,status:'error',error:'La app online todavía no está lista. Volvé a la app con internet y reintentá.'}))});}true;`);
   return response;
+ }
+ async function syncStep(label:string,operation:string,sample:Offline.Sample,photo?:any){
+  setSyncStatus(label);
+  try{return await send(operation,sample,photo);}catch(error){throw new Error(label+' '+(error instanceof Error?error.message:'No se pudo completar.'));}
  }
  async function synchronize(){
   if(syncing.current||!readyOwner.current)return;syncing.current=true;
   try{
    for(let sample of queue.current.filter(s=>s.ended_at&&s.ownerId===readyOwner.current)){
-    setSyncStatus('Sincronizando '+sample.bloqueName+'…');await send('session',sample);
+    await syncStep('Creando muestra de '+sample.bloqueName+'…','session',sample);
     for(const photo of sample.photos){
      if(photo.synced)continue;
-     const base64=await Offline.photoBase64(photo);await send('photo',sample,{...photo,uri:undefined,base64});
+     const base64=await Offline.photoBase64(photo);await syncStep('Subiendo y analizando foto '+(sample.photos.findIndex(p=>p.id===photo.id)+1)+' de '+sample.photos.length+'…','photo',sample,{...photo,uri:undefined,base64});
      sample={...sample,photos:sample.photos.map(p=>p.id===photo.id?{...p,synced:true}:p)};await Offline.saveSample(sample);
     }
-    await send('finish',sample);await Offline.completeSample(sample);await refreshLocal();
+    await syncStep('Confirmando muestra de '+sample.bloqueName+'…','finish',sample);await Offline.completeSample(sample);await refreshLocal();
    }
-   setSyncStatus(queue.current.some(s=>s.ended_at)?'Hay muestras pendientes en otra cuenta.':'Todo sincronizado.');
+   setSyncStatus(queue.current.some(s=>s.ended_at)?'Hay muestras pendientes en otra cuenta.':queue.current.some(s=>s.ownerId===readyOwner.current)?'Hay borradores: abrilos y tocá Finalizar y guardar muestra para sincronizarlos.':'Todo sincronizado.');
   }catch(e){setSyncStatus(e instanceof Error?e.message:'Sin conexión. Las muestras siguen en el teléfono.');}finally{syncing.current=false;}
  }
  useEffect(()=>{
@@ -67,7 +71,8 @@ export default function App(){
   if(result)ref.current?.injectJavaScript(`window.scanDepthResult?.(${JSON.stringify(result)});true;`);
  }
  return <SafeAreaProvider><SafeAreaView style={{flex:1}}><View style={{flex:1}}>
- <View style={{flexDirection:'row',justifyContent:'space-between',padding:10,backgroundColor:'#f8fafc'}}><Pressable accessibilityRole="button" onPress={()=>setOffline(v=>!v)}><Text style={{color:'#7a1f33',fontWeight:'600'}}>{offline?'Ver app online':'Muestrear / sin conexión'}</Text></Pressable><Text style={{fontSize:12,color:'#64748b'}}>{samples.filter(s=>s.ownerId===catalog?.user.id).length} pendientes</Text></View>
+ <View style={{flexDirection:'row',justifyContent:'space-between',padding:10,backgroundColor:'#f8fafc'}}><Pressable accessibilityRole="button" onPress={()=>setOffline(v=>!v)}><Text style={{color:'#7a1f33',fontWeight:'600'}}>{offline?'Ver app online':'Muestrear / sin conexión'}</Text></Pressable><Text style={{fontSize:12,color:'#64748b'}}>{samples.filter(s=>s.ownerId===catalog?.user.id&&s.ended_at).length} pendientes · {samples.filter(s=>s.ownerId===catalog?.user.id&&!s.ended_at).length} borradores</Text></View>
+ {!!syncStatus&&<View style={{padding:10,backgroundColor:'#fff7ed'}}><Text accessibilityRole="alert" style={{fontSize:12,color:'#9a3412'}}>{syncStatus}</Text><Pressable accessibilityRole="button" onPress={()=>{if(!readyOwner.current){setOffline(false);ref.current?.reload();}else synchronize();}}><Text style={{color:'#7a1f33',fontWeight:'600',marginTop:6}}>Reintentar sincronización</Text></Pressable></View>}
  <View style={{flex:1,display:offline?'none':'flex'}}><WebView ref={ref} source={{uri:url}} originWhitelist={[origin]} javaScriptEnabled injectedJavaScriptBeforeContentLoaded="window.scanOfflineAvailable=true;true;" startInLoadingState renderLoading={()=> <ActivityIndicator style={{position:"absolute",alignSelf:"center",top:"50%"}} color="#8f1834"/>}
  onLoadStart={()=>{setLoadError(false);readyOwner.current=null;}} onError={()=>{setLoadError(true);failedLoad.current=true;readyOwner.current=null;setOffline(true);}} onHttpError={e=>{if(e.nativeEvent.statusCode>=400){setLoadError(true);failedLoad.current=true;readyOwner.current=null;setOffline(true);}}} allowsInlineMediaPlayback mediaPlaybackRequiresUserAction={false}
  onShouldStartLoadWithRequest={r=>{try{return new URL(r.url).origin===origin;}catch{return false;}}}
