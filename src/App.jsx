@@ -18,6 +18,7 @@ import BloqueDetalle from './pages/BloqueDetalle';
 import Comparar from './pages/Comparar';
 import Admin from './pages/Admin';
 import RoleRoute from './components/RoleRoute';
+import OfflineBridge from './components/OfflineBridge';
 
 const AuthenticatedApp = () => {
   const location = useLocation();
@@ -61,6 +62,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <OfflineBridge />
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
