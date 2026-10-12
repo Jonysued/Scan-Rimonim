@@ -55,3 +55,20 @@ test('missing local photo reports a recoverable error without deleting the manif
 test('invalid photo identifiers cannot access files outside ScanOffline',async()=>{
  const f=await fixture();assert.throws(()=>f.store.photoUri({id:'../catalog',uri:'file://cache/shot.jpg'}),/inválido/);
 });
+
+
+test('damaged and malformed manifests do not hide healthy samples or alter recovery files',async()=>{
+ const f=await fixture();await f.store.saveSample(sample);
+ const broken='file://documents/ScanOffline/sample-broken.json';
+ const malformed='file://documents/ScanOffline/sample-malformed.json';
+ f.files.set(broken,'{"id":');
+ f.files.set(malformed,JSON.stringify({...sample,id:'malformed',photos:[{id:'../bad'}]}));
+ f.files.set('file://documents/ScanOffline/recovery.jpg','original JPEG');
+ const before=new Map(f.files);
+ const result=await f.store.readSamples();
+ assert.deepEqual(result.samples,[sample]);assert.equal(result.unreadableCount,2);
+ assert.deepEqual(await f.store.samples(),[sample]);assert.deepEqual(f.files,before);
+ f.files.set(broken,JSON.stringify({...sample,id:'broken'}));
+ assert.equal((await f.store.readSamples()).samples.length,2);
+ assert.equal((await f.store.readSamples()).unreadableCount,1);
+});
