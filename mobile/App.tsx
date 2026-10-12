@@ -13,12 +13,17 @@ export default function App(){
  const [loadError,setLoadError]=useState(false),[offline,setOffline]=useState(false);
  const [catalog,setCatalog]=useState<Offline.Catalog|null>(null),[samples,setSamples]=useState<Offline.Sample[]>([]);
  const [syncIssue,setSyncIssue]=useState(false);
+ const [syncFailures,setSyncFailures]=useState<{id:string;bloqueName:string;message:string}[]>([]);
+ const [unreadableCount,setUnreadableCount]=useState(0);
  const readyOwner=useRef<string|null>(null),failedLoad=useRef(false),generation=useRef(0);
  const mounted=useRef(true),draining=useRef(false),rerun=useRef(false);
  const replies=useRef(new Map<string,{resolve:(value:any)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}>());
  const url=Constants.expoConfig?.extra?.webUrl;
  const origin=typeof url==='string'&&url.startsWith('https://')?new URL(url).origin:'';
- async function refreshLocal(){const saved=await Offline.samples();if(mounted.current)setSamples(saved);}
+ async function refreshLocal(){
+  const local=await Offline.readSamples();
+  if(mounted.current){setSamples(local.samples);setUnreadableCount(local.unreadableCount);setSyncFailures(previous=>previous.filter(f=>local.samples.some(s=>s.id===f.id)));}
+ }
  function interrupt(){
   generation.current++;readyOwner.current=null;
   for(const reply of replies.current.values()){clearTimeout(reply.timer);reply.reject(new Error('Conexión interrumpida. La muestra se conserva.'));}
@@ -43,12 +48,14 @@ export default function App(){
   return response;
  }
  const worker=useRef<ReturnType<typeof createSyncQueue>|null>(null);
- if(!worker.current)worker.current=createSyncQueue({owner:()=>readyOwner.current,generation:()=>generation.current,samples:Offline.samples,send,photoBase64:Offline.photoBase64,saveSample:Offline.saveSample,completeSample:Offline.completeSample,onChanged:refreshLocal});
+ if(!worker.current)worker.current=createSyncQueue({owner:()=>readyOwner.current,generation:()=>generation.current,samples:Offline.samples,send,photoBase64:Offline.photoBase64,saveSample:Offline.saveSample,completeSample:Offline.completeSample,onChanged:refreshLocal,onFailed:async(sample,error)=>{
+  if(mounted.current)setSyncFailures(previous=>[...previous.filter(f=>f.id!==sample.id),{id:sample.id,bloqueName:sample.bloqueName,message:error.message}]);
+ }});
  async function synchronize(){
   if(draining.current){rerun.current=true;return;}if(!readyOwner.current)return;draining.current=true;rerun.current=false;
   try{await worker.current!();if(mounted.current)setSyncIssue(false);}
   catch{if(mounted.current)setSyncIssue(true);}
-  finally{draining.current=false;if(rerun.current&&mounted.current&&readyOwner.current)setTimeout(synchronize,0);}
+  finally{await refreshLocal().catch(()=>{if(mounted.current)setSyncIssue(true);});draining.current=false;if(rerun.current&&mounted.current&&readyOwner.current)setTimeout(synchronize,0);}
  }
  useEffect(()=>{
   mounted.current=true;
@@ -67,7 +74,7 @@ export default function App(){
    if(msg.type==='offline-open')setOffline(true);
    if(msg.type==='offline-ready'){if(readyOwner.current&&readyOwner.current!==msg.ownerId)interrupt();readyOwner.current=msg.ownerId;failedLoad.current=false;synchronize();}
    if(msg.type==='offline-catalog'){await Offline.writeJSON('catalog.json',msg.catalog);setCatalog(msg.catalog);if(readyOwner.current&&readyOwner.current!==msg.catalog.user.id)interrupt();readyOwner.current=msg.catalog.user.id;synchronize();}
-   if(msg.type==='offline-signed-out'){interrupt();setCatalog(null);await Offline.clearCatalog();}
+   if(msg.type==='offline-signed-out'){interrupt();setCatalog(null);setSyncFailures([]);await Offline.clearCatalog();}
    if(msg.type==='offline-ack'){const reply=replies.current.get(msg.requestId);if(reply){clearTimeout(reply.timer);replies.current.delete(msg.requestId);msg.status==='saved'?reply.resolve(msg):reply.reject(new Error(msg.error||'Sin conexión.'));}}
   }catch{setSyncIssue(true);}
  }
@@ -92,7 +99,7 @@ export default function App(){
     onHttpError={e=>{if(e.nativeEvent.statusCode>=400){setLoadError(true);failedLoad.current=true;interrupt();setOffline(true);}}}
     allowsInlineMediaPlayback mediaPlaybackRequiresUserAction={false}
     onShouldStartLoadWithRequest={r=>{try{return new URL(r.url).origin===origin;}catch{return false;}}} onMessage={onMessage}/>
-   {offline&&<View style={{position:'absolute',inset:0,backgroundColor:'#fff'}}><OfflineScreen catalog={catalog} samples={samples} syncIssue={syncIssue} onChanged={async()=>{await refreshLocal();void synchronize();}} onOnline={online}/></View>}
+   {offline&&<View style={{position:'absolute',inset:0,backgroundColor:'#fff'}}><OfflineScreen catalog={catalog} samples={samples} syncIssue={syncIssue} syncFailures={syncFailures.filter(f=>samples.some(s=>s.id===f.id&&s.ownerId===catalog?.user.id))} unreadableCount={unreadableCount} onRetry={()=>{if(readyOwner.current)void synchronize();else online();}} onChanged={async()=>{await refreshLocal();void synchronize();}} onOnline={online}/></View>}
    {loadError&&!offline&&<View style={{position:'absolute',inset:0,backgroundColor:'#fff',justifyContent:'center',alignItems:'center',padding:24,gap:20}}><Text style={{fontSize:18,textAlign:'center'}}>No pudimos conectar con Scan Rimonim.</Text><Pressable accessibilityRole="button" onPress={()=>{setLoadError(false);ref.current?.reload();}} style={{backgroundColor:'#8f1834',padding:16,borderRadius:12}}><Text style={{color:'#fff'}}>Reintentar</Text></Pressable></View>}
   </View>
  </View></SafeAreaView></SafeAreaProvider>;
