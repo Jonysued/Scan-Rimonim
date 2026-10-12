@@ -2,8 +2,8 @@ import React,{useEffect,useState} from 'react';
 import {ScrollView,View,Text,Pressable,Image,StyleSheet} from 'react-native';
 import {requireNativeModule} from 'expo-modules-core';
 import {Catalog,Sample,newId,saveSample,saveCapture,photoUri} from './offlineStore';
-type Props={catalog:Catalog|null;samples:Sample[];onChanged:()=>Promise<void>;onOnline:()=>void;syncIssue:boolean;};
-export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncIssue}:Props){
+type Props={catalog:Catalog|null;samples:Sample[];onChanged:()=>Promise<void>;onOnline:()=>void;syncIssue:boolean;syncFailures:{id:string;bloqueName:string;message:string}[];unreadableCount:number;onRetry:()=>void;};
+export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncIssue,syncFailures,unreadableCount,onRetry}:Props){
  const [active,setActive]=useState<Sample|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [saved,setSaved]=useState<Sample|null>(null);const [help,setHelp]=useState(false);
  useEffect(()=>{setActive(null);setSaved(null);setHelp(false);},[catalog?.user.id]);
  const writable=catalog && ['admin','muestreador'].includes(catalog.user.role);
@@ -16,6 +16,13 @@ export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncIs
  async function finish(){if(!active||busy||!active.photos.length||!writable||active.ownerId!==catalog?.user.id)return;setBusy(true);setError('');try{const done={...active,ended_at:new Date().toISOString()};await saveSample(done);setSaved(done);setActive(null);await onChanged();}catch{setError('No se pudo guardar el muestreo. Reintentá; las fotos se conservan.');}finally{setBusy(false);}}
  return <ScrollView contentContainerStyle={s.page}>
   <Text style={s.title}>{saved?'Muestreo guardado':'Muestreo'}</Text>
+  {(syncIssue||unreadableCount>0||syncFailures.length>0)&&<View style={s.warningBox} accessibilityRole="alert">
+   <Text style={s.heading}>Algunas muestras necesitan atención</Text>
+   <Text style={s.muted}>Las fotos guardadas se conservan en este teléfono. Las demás muestras pueden seguir enviándose.</Text>
+   {syncFailures.map(f=><View key={f.id}><Text style={s.heading}>{f.bloqueName}</Text><Text style={s.muted}>{f.message}</Text></View>)}
+   {unreadableCount>0&&<Text style={s.muted}>{unreadableCount} {unreadableCount===1?'registro local no se pudo abrir':'registros locales no se pudieron abrir'}. Se conservan para recuperar. No desinstales la app.</Text>}
+   <Pressable accessibilityRole="button" style={s.secondary} onPress={onRetry}><Text style={s.accent}>Reintentar envío</Text></Pressable>
+  </View>}
   {saved?<View style={s.success} accessibilityRole="alert"><Text style={s.heading}>{saved.bloqueName}</Text><Text style={s.muted}>{saved.photos.length} {saved.photos.length===1?'foto guardada':'fotos guardadas'}</Text><Text style={s.muted}>Podés continuar con otro muestreo.</Text><Pressable accessibilityRole="button" style={s.primary} onPress={()=>setSaved(null)}><Text style={s.white}>Nuevo muestreo</Text></Pressable><Pressable accessibilityRole="button" style={s.secondary} onPress={onOnline}><Text style={s.accent}>Volver a la app</Text></Pressable></View>:null}
   {!catalog&&<Text style={s.warning}>Ingresá una vez con internet para descargar los lotes antes de salir al campo.</Text>}
 
@@ -37,4 +44,4 @@ export default function OfflineScreen({catalog,samples,onChanged,onOnline,syncIs
   {help&&!saved&&!active&&<View><Text style={s.muted}>{syncIssue?'Tus fotos están guardadas en este teléfono. Conectá el iPhone a internet y mantené la app abierta para enviarlas.':'Podés muestrear sin internet. Las fotos se guardan en este teléfono y se envían automáticamente cuando hay conexión y la app está abierta.'}</Text><Pressable accessibilityRole="button" style={s.secondary} onPress={onOnline}><Text style={s.accent}>Volver a la app</Text></Pressable></View>}
  </ScrollView>;
 }
-const s=StyleSheet.create({success:{padding:18,backgroundColor:'#f0fdf4',borderRadius:16,gap:8},page:{padding:20,paddingBottom:50,gap:12,backgroundColor:'#fff',flexGrow:1},title:{fontSize:24,fontWeight:'600',color:'#2a1a1d'},heading:{fontSize:16,fontWeight:'600',color:'#2a1a1d',marginVertical:6},muted:{fontSize:14,color:'#64748b',lineHeight:21},warning:{color:'#9a3412',padding:12,backgroundColor:'#fff7ed',borderRadius:10},primary:{backgroundColor:'#7a1f33',padding:16,borderRadius:12,alignItems:'center',marginVertical:10},white:{color:'#fff',fontSize:16,fontWeight:'600'},secondary:{padding:14,borderRadius:10,backgroundColor:'#f8fafc',marginVertical:6},accent:{color:'#7a1f33',fontWeight:'600'},row:{padding:14,borderWidth:1,borderColor:'#e2e8f0',borderRadius:12,marginVertical:4},photos:{flexDirection:'row',flexWrap:'wrap',gap:8},photo:{width:90,height:100,borderRadius:10}});
+const s=StyleSheet.create({warningBox:{padding:14,backgroundColor:'#fff7ed',borderRadius:12,gap:6},success:{padding:18,backgroundColor:'#f0fdf4',borderRadius:16,gap:8},page:{padding:20,paddingBottom:50,gap:12,backgroundColor:'#fff',flexGrow:1},title:{fontSize:24,fontWeight:'600',color:'#2a1a1d'},heading:{fontSize:16,fontWeight:'600',color:'#2a1a1d',marginVertical:6},muted:{fontSize:14,color:'#64748b',lineHeight:21},warning:{color:'#9a3412',padding:12,backgroundColor:'#fff7ed',borderRadius:10},primary:{backgroundColor:'#7a1f33',padding:16,borderRadius:12,alignItems:'center',marginVertical:10},white:{color:'#fff',fontSize:16,fontWeight:'600'},secondary:{padding:14,borderRadius:10,backgroundColor:'#f8fafc',marginVertical:6},accent:{color:'#7a1f33',fontWeight:'600'},row:{padding:14,borderWidth:1,borderColor:'#e2e8f0',borderRadius:12,marginVertical:4},photos:{flexDirection:'row',flexWrap:'wrap',gap:8},photo:{width:90,height:100,borderRadius:10}});
