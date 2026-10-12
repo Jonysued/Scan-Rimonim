@@ -20,15 +20,25 @@ export async function catalog():Promise<Catalog|null>{
   return JSON.parse(await FS.readAsStringAsync(path));
 }
 export async function clearCatalog(){await FS.deleteAsync(root+'catalog.json',{idempotent:true});}
-export async function samples():Promise<Sample[]>{
-  if(!(await FS.getInfoAsync(root)).exists)return [];
-  const result:Sample[]=[];
+export async function readSamples():Promise<{samples:Sample[];unreadableCount:number}>{
+  if(!(await FS.getInfoAsync(root)).exists)return {samples:[],unreadableCount:0};
+  const result:Sample[]=[];let unreadableCount=0;
   for(const name of await FS.readDirectoryAsync(root)){
     if(!name.startsWith('sample-') || !name.endsWith('.json'))continue;
-    result.push(portableSample(JSON.parse(await FS.readAsStringAsync(root+name))));
+    try{
+      const value=JSON.parse(await FS.readAsStringAsync(root+name));
+      if(!value||typeof value.id!=='string'||name!=='sample-'+value.id+'.json'||typeof value.ownerId!=='string'||typeof value.bloque_id!=='string'||typeof value.started_at!=='string'||!Array.isArray(value.photos))throw new Error('Muestra local incompleta.');
+      const sample=portableSample(value);
+      if(!sample.completed)result.push(sample);
+    }catch{
+      // Preserve the original manifest and photographs for recovery.
+      // One damaged record must not hide or block other healthy records.
+      unreadableCount++;
+    }
   }
-  return result.filter(s=>!s.completed).sort((a,b)=>a.started_at.localeCompare(b.started_at));
+  return {samples:result.sort((a,b)=>a.started_at.localeCompare(b.started_at)),unreadableCount};
 }
+export async function samples():Promise<Sample[]>{return (await readSamples()).samples;}
 export async function saveSample(sample:Sample){await writeJSON('sample-'+sample.id+'.json',portableSample(sample));}
 export async function saveCapture(sample:Sample,shot:{uri:string;depthCapture:unknown}):Promise<Sample>{
   const id=newId(); const uri=root+id+'.jpg';
