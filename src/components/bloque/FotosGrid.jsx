@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { Image } from "@/components/ui/image";
 
 const PAGE_SIZE = 12;
@@ -22,7 +22,7 @@ export default function FotosGrid({ fotos }) {
       const missing = pageFotos.filter((f) => f.storage_uri && !urls[f.id]);
       if (!missing.length) return;
       const signed = await Promise.all(
-        missing.map((f) => base44.integrations.Core.CreateFileSignedUrl({ file_uri: f.storage_uri }))
+        missing.map((f) => appClient.integrations.Core.CreateFileSignedUrl({ file_uri: f.storage_uri }))
       );
       if (!alive) return;
       setUrls((prev) => {
@@ -31,7 +31,7 @@ export default function FotosGrid({ fotos }) {
         return next;
       });
     })();
-    return () => (alive = false);
+    return () => { alive = false; };
   }, [pageFotos.map((f) => f.id).join(",")]);
 
   if (fotos.length === 0) {
@@ -53,7 +53,7 @@ export default function FotosGrid({ fotos }) {
             )}
             {f.fruit_count_estimate != null && (
               <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
-                {Math.round(f.avg_diameter_mm ?? 0)} mm
+                {Number.isFinite(f.avg_diameter_mm) ? `${Math.round(f.avg_diameter_mm)} mm` : "Sin calibre medido"}
               </span>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function AdminClases({ clases, onRefresh }) {
@@ -7,7 +7,7 @@ export default function AdminClases({ clases, onRefresh }) {
 
   const add = async () => {
     if (!form.name.trim() || form.min_mm === "" || form.max_mm === "") return;
-    await base44.entities.ClaseComercial.create({
+    await appClient.entities.ClaseComercial.create({
       name: form.name.trim(),
       min_mm: Number(form.min_mm),
       max_mm: Number(form.max_mm),
@@ -16,7 +16,7 @@ export default function AdminClases({ clases, onRefresh }) {
     onRefresh();
   };
   const remove = async (id) => {
-    await base44.entities.ClaseComercial.delete(id);
+    await appClient.entities.ClaseComercial.delete(id);
     onRefresh();
   };
 

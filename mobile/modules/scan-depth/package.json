@@ -1,0 +1,8 @@
+{
+  "name": "scan-depth",
+  "version": "0.1.0",
+  "description": "Scan Rimonim rear camera capture",
+  "license": "MIT",
+  "author": "Rimonim",
+  "homepage": "https://github.com/Jonysued/scanrimonim"
+}

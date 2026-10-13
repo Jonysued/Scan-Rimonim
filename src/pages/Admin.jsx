@@ -1,5 +1,6 @@
+import { useAuth } from "@/lib/AuthContext";
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminFincasBloques from "@/components/admin/AdminFincasBloques";
@@ -9,16 +10,17 @@ import AdminMetas from "@/components/admin/AdminMetas";
 import AdminUsuarios from "@/components/admin/AdminUsuarios";
 
 export default function Admin() {
+  const { logout } = useAuth();
   const [data, setData] = useState({ fincas: [], bloques: [], variedades: [], clases: [], metas: [] });
   const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
     const [fincas, bloques, variedades, clases, metas] = await Promise.all([
-      base44.entities.Finca.list(),
-      base44.entities.Bloque.list(),
-      base44.entities.Variedad.list(),
-      base44.entities.ClaseComercial.list(),
-      base44.entities.MetaBloque.list(),
+      appClient.entities.Finca.list(),
+      appClient.entities.Bloque.list(),
+      appClient.entities.Variedad.list(),
+      appClient.entities.ClaseComercial.list(),
+      appClient.entities.MetaBloque.list(),
     ]);
     setData({ fincas, bloques, variedades, clases, metas });
     setLoading(false);
@@ -35,7 +37,7 @@ export default function Admin() {
         <p className="text-sm text-[#9b7f82] mb-6">Fincas, lotes, variedades, clases comerciales y metas.</p>
 
         <Tabs defaultValue="fincas">
-          <TabsList className="bg-white border border-[#eee1dc] rounded-xl p-1 mb-5">
+          <TabsList className="bg-white border border-[#eee1dc] rounded-xl p-1 mb-5 flex-wrap h-auto">
             <TabsTrigger value="fincas" className="rounded-lg">Fincas / Lotes</TabsTrigger>
             <TabsTrigger value="variedades" className="rounded-lg">Variedades</TabsTrigger>
             <TabsTrigger value="clases" className="rounded-lg">Clases comerciales</TabsTrigger>
@@ -58,6 +60,7 @@ export default function Admin() {
             <AdminUsuarios />
           </TabsContent>
         </Tabs>
+        <button onClick={logout} className="mt-6 underline">Cerrar sesión</button>
       </div>
     </AppShell>
   );

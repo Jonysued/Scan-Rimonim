@@ -1,6 +1,7 @@
 import React from "react";
 import { Loader2, CheckCircle2, XCircle, Image as ImageIcon } from "lucide-react";
 import AnnotatedPhoto from "@/components/sesion/AnnotatedPhoto";
+import ColorResultado from "@/components/sesion/ColorResultado";
 
 export default function FotoCaptura({ foto }) {
   return (
@@ -30,6 +31,8 @@ export default function FotoCaptura({ foto }) {
           </div>
         )}
       </div>
+      {foto.status === "guardado" && <p className="text-xs text-amber-800 mt-1">Guardada · análisis pendiente</p>}
+      {foto.status === "listo" && <ColorResultado fruits={foto.fruits} />}
       {foto.status === "listo" && (
         <div className="absolute top-2.5 left-2.5 bg-white/90 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-[#2a1a1d]">
           {foto.fruit_count_estimate} frutos

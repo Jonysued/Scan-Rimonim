@@ -6,11 +6,12 @@ const CATEGORY_LEVEL = { verde: 1, rosado: 3, rojo: 5, rojo_oscuro: 6 };
 const COLORS = ["#84cc16", "#a3e635", "#fbbf24", "#fb923c", "#ef4444", "#b91c1c"];
 
 const intensityOf = (f) => {
-  if (f.color_score != null) return Math.min(6, Math.max(1, Math.ceil(f.color_score / 20)));
+  if (f.color_score != null) return Math.min(6, Math.max(1, Math.ceil(f.color_score * 6 / 100)));
   return CATEGORY_LEVEL[f.color_category] || 1;
 };
 
 export default function ColorHistograma({ fruits }) {
+  fruits = fruits.filter(f => Number.isFinite(f.color_score) || CATEGORY_LEVEL[f.color_category]);
   const total = fruits.length;
   const data = [1, 2, 3, 4, 5, 6].map((lvl) => {
     const count = fruits.filter((f) => intensityOf(f) === lvl).length;
@@ -32,7 +33,7 @@ export default function ColorHistograma({ fruits }) {
             cursor={{ fill: "#f9fafb" }}
           />
           <ReferenceLine x="2" stroke="#9ca3af" strokeDasharray="4 4" label={{ value: "Quiebre de color", position: "top", fontSize: 10, fill: "#6b7280" }} />
-          <ReferenceLine x="6" stroke="#9ca3af" strokeDasharray="4 4" label={{ value: "Color completo", position: "top", fontSize: 10, fill: "#6b7280" }} />
+          <ReferenceLine x="6" stroke="#9ca3af" strokeDasharray="4 4" label={{ value: "Rojo intenso", position: "top", fontSize: 10, fill: "#6b7280" }} />
           <Bar dataKey="frutos" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => (
               <Cell key={i} fill={COLORS[i]} />
@@ -41,7 +42,7 @@ export default function ColorHistograma({ fruits }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <p className="text-[11px] text-[#6b7280] text-center mt-1">Intensidad de color</p>
+      <p className="text-[11px] text-[#6b7280] text-center mt-1">Intensidad visual de color (estimación)</p>
     </div>
   );
 }

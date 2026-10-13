@@ -1,6 +1,7 @@
+import { measuredMean } from "@/lib/capture/metrics";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { appClient } from "@/api/appClient";
 import AppShell from "@/components/layout/AppShell";
 import EstructuraCalibre from "@/components/bloque/EstructuraCalibre";
 import ColorHistograma from "@/components/bloque/ColorHistograma";
@@ -23,18 +24,18 @@ export default function BloqueDetalle() {
 
   useEffect(() => {
     (async () => {
-      const b = await base44.entities.Bloque.get(id);
+      const b = await appClient.entities.Bloque.get(id);
       setBloque(b);
       const [f, s, v] = await Promise.all([
-        base44.entities.Finca.get(b.finca_id),
-        base44.entities.SesionMuestreo.filter({ bloque_id: id }, "-started_at"),
-        b.variedad_id ? base44.entities.Variedad.get(b.variedad_id) : Promise.resolve(null),
+        appClient.entities.Finca.get(b.finca_id),
+        appClient.entities.SesionMuestreo.filter({ bloque_id: id }, "-started_at"),
+        b.variedad_id ? appClient.entities.Variedad.get(b.variedad_id) : Promise.resolve(null),
       ]);
       setFinca(f);
       setSesiones(s);
       setVariedad(v);
       const fotosPorSesion = await Promise.all(
-        s.map((ses) => base44.entities.Foto.filter({ session_id: ses.id }))
+        s.map((ses) => appClient.entities.Foto.filter({ session_id: ses.id }))
       );
       setFotos(fotosPorSesion.flat());
       setLoading(false);
@@ -48,16 +49,13 @@ export default function BloqueDetalle() {
   if (loading) return <AppShell><div className="py-24 text-center text-[#b79a9d]">Cargando...</div></AppShell>;
 
   const exportCsv = () => {
-    const rows = [["Fecha", "Frutos", "Media mm", "% Rojo", "% Rajado", "% Sunburn", "% Russet"]];
+    const rows = [["Fecha", "Frutos", "Media mm", "% Rojo"]];
     listas.forEach((s) =>
       rows.push([
         moment(s.started_at).format("YYYY-MM-DD"),
         s.fruit_count || 0,
-        (s.avg_diameter_mm || 0).toFixed(1),
+        s.avg_diameter_mm?.toFixed(1) ?? "",
         (s.red_pct || 0).toFixed(1),
-        (s.cracking_pct || 0).toFixed(1),
-        (s.sunburn_pct || 0).toFixed(1),
-        (s.russet_pct || 0).toFixed(1),
       ])
     );
     const csv = rows.map((r) => r.join(",")).join("\n");
@@ -81,9 +79,7 @@ export default function BloqueDetalle() {
   const idsSemana = new Set(sesionesSemana.map((s) => s.id));
   const fotosSemana = fotos.filter((f) => idsSemana.has(f.session_id));
   const frutosSemana = fotosSemana.flatMap((f) => f.fruits || []);
-  const avgDiamSemana = frutosSemana.length
-    ? frutosSemana.reduce((a, f) => a + f.diameter_mm, 0) / frutosSemana.length
-    : sesionesSemana.reduce((a, s) => a + (s.avg_diameter_mm || 0), 0) / (sesionesSemana.length || 1);
+  const avgDiamSemana = measuredMean(frutosSemana.map(f => f.diameter_mm)) ?? measuredMean(sesionesSemana.map(s => s.avg_diameter_mm));
 
   return (
     <AppShell>
