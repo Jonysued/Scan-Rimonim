@@ -1,0 +1,13 @@
+name: TestFlight build 16 reviewed
+
+jobs:
+  testflight_16:
+    name: Distribute reviewed build 16 to TestFlight
+    type: testflight
+    params:
+      build_id: 52e1a322-d094-44b2-abdf-a0f71ba5f3d8
+      profile: production
+      external_groups:
+        - 'Scan Rimonim - Joaquín'
+      changelog: 'Captura LiDAR entre 17 y 23 cm (objetivo 20 cm, margen ±3 cm), con mayor tolerancia a pequeños movimientos. Se registra la distancia real al tomar la foto. Probar facilidad de captura y nitidez; corroborar el diámetro estimado con calibre manual. Se conservan las correcciones de offline de la versión 15.'
+
