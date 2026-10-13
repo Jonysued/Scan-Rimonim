@@ -7,9 +7,9 @@ import UIKit
 // A capture protocol, not a claim of sensor accuracy or validated fruit sizing.
 private struct LidarDistanceGate {
   static let targetM = 0.20
-  static let toleranceM = 0.01
+  static let toleranceM = 0.03
   static let holdSeconds = 0.8
-  static let maximumSpanM = 0.008
+  static let maximumSpanM = 0.02
   private var readings: [(time: TimeInterval, distance: Double)] = []
   var stableDuration: TimeInterval {
     guard let first = readings.first, let last = readings.last else { return 0 }
@@ -75,7 +75,7 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
     status.textColor = .white
     status.backgroundColor = UIColor.black.withAlphaComponent(0.75)
     status.text = "LiDAR trasero · Iniciando…\nUna granada inmóvil, de frente y con buena luz."
-    captureButton.setTitle("Buscá 20 cm para tomar la foto", for: .normal)
+    captureButton.setTitle("Ubicá el teléfono entre 17 y 23 cm", for: .normal)
     captureButton.backgroundColor = .systemGreen
     captureButton.setTitleColor(.black, for: .normal)
     captureButton.layer.cornerRadius = 12
@@ -135,15 +135,15 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
       if trackingOK && frame.sceneDepth != nil {
         if let distance = self.centerDistance(frame) {
           let stable = self.distanceGate.observe(distance, at: frame.timestamp)
-          let guidance = distance < LidarDistanceGate.targetM - LidarDistanceGate.toleranceM ? "Alejá el teléfono hasta 20 cm." : distance > LidarDistanceGate.targetM + LidarDistanceGate.toleranceM ? "Acercá el teléfono hasta 20 cm." : stable ? "Distancia estable. Podés tomar la foto." : "Mantené inmóviles el teléfono y la fruta (0,8 s)."
+          let guidance = distance < LidarDistanceGate.targetM - LidarDistanceGate.toleranceM ? "Alejá el teléfono hasta entrar entre 17 y 23 cm." : distance > LidarDistanceGate.targetM + LidarDistanceGate.toleranceM ? "Acercá el teléfono hasta entrar entre 17 y 23 cm." : stable ? "Distancia estable. Podés tomar la foto." : "Mantené inmóviles el teléfono y la fruta (0,8 s)."
           self.readyFrame = stable ? frame : nil
           self.readyAtUptime = stable ? ProcessInfo.processInfo.systemUptime : 0
           self.captureButton.isEnabled = stable
           self.captureButton.backgroundColor = stable ? .systemGreen : .darkGray
           self.crosshair.textColor = stable ? .systemGreen : .white
-          self.captureButton.setTitle(stable ? "Tomar foto · objetivo 20 cm" : "Buscá 20 cm y mantené inmóvil", for: .normal)
+          self.captureButton.setTitle(stable ? "Tomar foto · objetivo 20 cm" : "Entre 17 y 23 cm · mantené estable", for: .normal)
           let measured = String(format: "%.1f", distance * 100)
-          self.status.text = "Objetivo: 20 cm · margen de captura ±1 cm\nLiDAR al centro: ≈\(measured) cm\n\(guidance)\n+ sobre la fruta, no el fondo. Calibre experimental."
+          self.status.text = "Objetivo: 20 cm · margen de captura ±3 cm (17–23 cm)\nLiDAR al centro: ≈\(measured) cm\n\(guidance)\n+ sobre la fruta, no el fondo. Calibre experimental."
         } else {
           self.distanceGate.reset()
           self.captureButton.setTitle("Esperando distancia fiable", for: .normal)
@@ -209,7 +209,7 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
       captureButton.isEnabled = false
       captureButton.backgroundColor = .darkGray
       crosshair.textColor = .white
-      status.text = "La distancia cambió. Volvé a 20 cm y mantené inmóvil."
+      status.text = "La distancia cambió. Volvé al rango de 17–23 cm y mantené estable."
       return
     }
     exporting = true
@@ -217,7 +217,7 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
     readyFrame = nil
     cameraView.session.pause()
     status.text = "Guardando foto y profundidad…"
-    let captureProtocol: [String: Any] = ["id": "lidar-front-20cm-v1", "version": 1,
+    let captureProtocol: [String: Any] = ["id": "lidar-front-20cm-v2", "version": 2,
       "target_distance_m": LidarDistanceGate.targetM, "tolerance_m": LidarDistanceGate.toleranceM,
       "measured_distance_m": distance, "distance_reference": "camera-plane-to-surface-at-reticle",
       "required_hold_s": LidarDistanceGate.holdSeconds, "stable_duration_s": distanceGate.stableDuration,
@@ -305,3 +305,4 @@ final class LidarCaptureController: UIViewController, ARSessionDelegate {
     dismiss(animated: true) { callback?(result, error) }
   }
 }
+
