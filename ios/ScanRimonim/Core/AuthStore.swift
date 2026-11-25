@@ -56,10 +56,45 @@ final class AuthStore: ObservableObject {
 
     func recuperar(email: String) async -> Bool {
         do {
-            try await supabase.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespaces))
+            try await supabase.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespaces).lowercased())
             return true
         } catch {
             self.error = error.localizedDescription
+            return false
+        }
+    }
+
+    // Código de 6 dígitos del email de recuperación → contraseña nueva
+    func restablecer(email: String, codigo: String, nueva: String) async -> Bool {
+        error = nil
+        do {
+            let r = try await supabase.auth.verifyOTP(
+                email: email.trimmingCharacters(in: .whitespaces).lowercased(),
+                token: codigo.trimmingCharacters(in: .whitespaces),
+                type: .recovery)
+            if let s = r.session { userId = s.user.id }
+            try await supabase.auth.update(user: UserAttributes(password: nueva))
+            await cargarPerfil()
+            return true
+        } catch {
+            self.error = "Código inválido o vencido. Pedí uno nuevo."
+            return false
+        }
+    }
+
+    // Código de 6 dígitos del email de alta → cuenta confirmada
+    func confirmarAlta(email: String, codigo: String) async -> Bool {
+        error = nil
+        do {
+            let r = try await supabase.auth.verifyOTP(
+                email: email.trimmingCharacters(in: .whitespaces).lowercased(),
+                token: codigo.trimmingCharacters(in: .whitespaces),
+                type: .signup)
+            if let s = r.session { userId = s.user.id }
+            await cargarPerfil()
+            return true
+        } catch {
+            self.error = "Código inválido o vencido."
             return false
         }
     }
