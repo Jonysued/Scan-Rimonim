@@ -164,27 +164,28 @@ enum CaptureProcessor {
             return pts
         }
         var pts = rayos(cx: sx, cy: sy)
-        let mx = Int(pts.map(\.x).reduce(0, +) / Double(pts.count))
-        let my = Int(pts.map(\.y).reduce(0, +) / Double(pts.count))
+        let mx = Int(pts.map { Double($0.x) }.reduce(0, +) / Double(pts.count))
+        let my = Int(pts.map { Double($0.y) }.reduce(0, +) / Double(pts.count))
         if dentro(mx, my) { pts = rayos(cx: mx, cy: my) }
 
         // Suavizado: mediana de radios vecinos (quita picos de hojas/pedúnculo)
-        let c = CGPoint(x: pts.map(\.x).reduce(0, +) / 160, y: pts.map(\.y).reduce(0, +) / 160)
-        let radios = pts.map { hypot($0.x - c.x, $0.y - c.y) }
+        let ccx = pts.map { Double($0.x) }.reduce(0, +) / 160
+        let ccy = pts.map { Double($0.y) }.reduce(0, +) / 160
+        let radios: [Double] = pts.map { hypot(Double($0.x) - ccx, Double($0.y) - ccy) }
         var suav: [CGPoint] = []
         for i in 0..<160 {
             let vec = (-3...3).map { radios[(i + $0 + 160) % 160] }.sorted()
             let r = vec[3]
-            let a = Double(i) / 160 * 2 * .pi
-            suav.append(CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r))
+            let a = Double(i) / 160 * 2 * Double.pi
+            suav.append(CGPoint(x: ccx + cos(a) * r, y: ccy + sin(a) * r))
         }
 
-        let contorno = suav.map { Punto(x: $0.x / Double(W) * 1000, y: $0.y / Double(H) * 1000) }
+        let contorno = suav.map { Punto(x: Double($0.x) / Double(W) * 1000, y: Double($0.y) / Double(H) * 1000) }
         let color = ColorAnalyzer.analizar(cg: cg, contorno: suav)
 
         return Fruta(
             body_contour: contorno,
-            segmentation_seed: Punto(x: seed.x, y: seed.y),
+            segmentation_seed: Punto(x: Double(seed.x), y: Double(seed.y)),
             segmentation_model: "vision-foreground-depth-v1",
             localization_status: "located",
             localization_confidence: 0.9,

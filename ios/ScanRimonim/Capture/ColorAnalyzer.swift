@@ -29,11 +29,12 @@ enum ColorAnalyzer {
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
 
         // Polígono escalado y encogido hacia el centro
-        let cx = contorno.map(\.x).reduce(0, +) / Double(contorno.count)
-        let cy = contorno.map(\.y).reduce(0, +) / Double(contorno.count)
-        let poly = contorno.map {
-            CGPoint(x: (cx + ($0.x - cx) * Umbrales.encoger) * escala,
-                    y: (cy + ($0.y - cy) * Umbrales.encoger) * escala)
+        let cx = contorno.map { Double($0.x) }.reduce(0, +) / Double(contorno.count)
+        let cy = contorno.map { Double($0.y) }.reduce(0, +) / Double(contorno.count)
+        let poly: [CGPoint] = contorno.map { p -> CGPoint in
+            let x: Double = (cx + (Double(p.x) - cx) * Umbrales.encoger) * escala
+            let y: Double = (cy + (Double(p.y) - cy) * Umbrales.encoger) * escala
+            return CGPoint(x: x, y: y)
         }
         let path = CGMutablePath()
         path.addLines(between: poly)

@@ -30,7 +30,7 @@ struct FotoAnotada: View {
                         GeometryReader { g in
                             if let c = fruta?.body_contour, c.count > 2 {
                                 Path { p in
-                                    let pts = c.map { CGPoint(x: $0.x / 1000 * g.size.width, y: $0.y / 1000 * g.size.height) }
+                                    let pts = c.map { CGPoint(x: CGFloat($0.x) / 1000 * g.size.width, y: CGFloat($0.y) / 1000 * g.size.height) }
                                     p.addLines(pts); p.closeSubpath()
                                 }.stroke(Color.green, lineWidth: 2)
                             }
