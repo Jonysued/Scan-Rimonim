@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     defaults:
       run:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Xcode
         run: |
-          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          ls -d /Applications/Xcode_*.app; sudo xcode-select -s "$(ls -d /Applications/Xcode_2[6-9]*.app | grep -iv beta | sort -V | tail -1)"
           xcodebuild -version
 
       - name: Generar proyecto
