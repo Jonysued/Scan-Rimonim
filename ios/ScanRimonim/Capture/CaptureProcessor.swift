@@ -142,7 +142,7 @@ enum CaptureProcessor {
         }
 
         // Centroide aproximado desde la semilla
-        let sx = Int(seed.x * Double(W)), sy = Int(seed.y * Double(H))
+        let sx = Int(Double(seed.x) * Double(W)), sy = Int(Double(seed.y) * Double(H))
         guard dentro(sx, sy) else { return nil }
 
         // Contorno por 160 rayos desde la semilla, luego recentrado una vez
@@ -222,7 +222,7 @@ enum CaptureProcessor {
         let iw = CVPixelBufferGetWidth(inst), ih = CVPixelBufferGetHeight(inst)
         let irow = CVPixelBufferGetBytesPerRow(inst)
         let ibase = CVPixelBufferGetBaseAddress(inst)!.assumingMemoryBound(to: UInt8.self)
-        let sx = Int(seed.x * Double(iw)), sy = Int(seed.y * Double(ih))
+        let sx = Int(Double(seed.x) * Double(iw)), sy = Int(Double(seed.y) * Double(ih))
         var label = Int(ibase[sy * irow + sx])
         if label == 0 {
             var mejor = Int.max
