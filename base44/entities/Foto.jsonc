@@ -52,7 +52,26 @@
             ]
           },
           "color_score": {
+            "type": "number",
+            "description": "% de la cáscara visible que es roja (medido sobre píxeles)"
+          },
+          "color_source": {
+            "type": "string",
+            "enum": ["pixeles", "ia"]
+          },
+          "color_a_median": {
             "type": "number"
+          },
+          "color_red_L_median": {
+            "type": "number"
+          },
+          "diameter_source": {
+            "type": "string",
+            "enum": ["referencia", "estimado"]
+          },
+          "reference_tilt": {
+            "type": "number",
+            "description": "Desvío de proporción de la tarjeta (0 = de frente)"
           },
           "center_x_pct": {
             "type": "number",

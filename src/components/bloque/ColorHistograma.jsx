@@ -1,4 +1,5 @@
 import React from "react";
+import { colorLevel } from "@/lib/colorAnalysis";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList, Cell, ReferenceLine } from "recharts";
 
 // Escala 1 (verde) a 6 (rojo oscuro)
@@ -6,7 +7,7 @@ const CATEGORY_LEVEL = { verde: 1, rosado: 3, rojo: 5, rojo_oscuro: 6 };
 const COLORS = ["#84cc16", "#a3e635", "#fbbf24", "#fb923c", "#ef4444", "#b91c1c"];
 
 const intensityOf = (f) => {
-  if (f.color_score != null) return Math.min(6, Math.max(1, Math.ceil(f.color_score / 20)));
+  if (f.color_score != null) return colorLevel(f.color_score);
   return CATEGORY_LEVEL[f.color_category] || 1;
 };
 

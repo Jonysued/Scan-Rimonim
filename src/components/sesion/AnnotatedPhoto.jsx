@@ -35,7 +35,7 @@ export default function AnnotatedPhoto({ src, fruits = [] }) {
                   strokeWidth={Math.max(dims.w / 200, 2)}
                   paintOrder="stroke"
                 >
-                  {Math.round(f.diameter_mm)} mm
+                  {f.diameter_mm ? `${f.diameter_source === "estimado" ? "~" : ""}${Math.round(f.diameter_mm)} mm` : "?"}
                 </text>
               </g>
             );

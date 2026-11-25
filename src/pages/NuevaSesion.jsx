@@ -6,6 +6,8 @@ import SelectorContexto from "@/components/sesion/SelectorContexto";
 import FotoCaptura from "@/components/sesion/FotoCaptura";
 import { Camera, Loader2 } from "lucide-react";
 import normalizeImage from "@/lib/normalizeImage";
+import { REFERENCIAS, buildFruits } from "@/lib/calibre";
+import { analyzeFruitColor, readPixels } from "@/lib/colorAnalysis";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function NuevaSesion() {
@@ -20,6 +22,7 @@ export default function NuevaSesion() {
   const [sessionId, setSessionId] = useState(null);
   const [fotos, setFotos] = useState([]);
   const [finalizing, setFinalizing] = useState(false);
+  const [referencia, setReferencia] = useState("tarjeta");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export default function NuevaSesion() {
       status: "borrador",
       photo_count: 0,
       fruit_count: 0,
+      reference_type: referencia,
     });
     setSessionId(s.id);
     return s.id;
@@ -75,23 +79,29 @@ export default function NuevaSesion() {
         const analysis = await base44.functions.invoke("analyzePhoto", {
           signed_url,
           variedad_name: variedadName,
+          reference_type: referencia,
         });
-        const fruits = analysis.data.fruits || [];
+        const { data: pixels, W, H } = await readPixels(nf.file);
+        const fruits = buildFruits(analysis.data, referencia, W, H).map((fr) => {
+          const color = analyzeFruitColor(pixels, W, H, fr);
+          return color ? { ...fr, ...color } : { ...fr, color_source: "ia" };
+        });
         await base44.entities.Foto.create({
           session_id: sid,
           captured_at: new Date().toISOString(),
           storage_uri: file_uri,
           status: "listo",
-          fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length,
-          avg_diameter_mm: fruits.length
-            ? fruits.reduce((a, f) => a + f.diameter_mm, 0) / fruits.length
+          fruit_count_estimate: fruits.length,
+          avg_diameter_mm: fruits.some((f) => f.diameter_mm)
+            ? fruits.filter((f) => f.diameter_mm).reduce((a, f) => a + f.diameter_mm, 0) /
+              fruits.filter((f) => f.diameter_mm).length
             : null,
           fruits,
         });
         setFotos((prev) =>
           prev.map((f) =>
             f.tempId === nf.tempId
-              ? { ...f, status: "listo", fruits, fruit_count_estimate: analysis.data.fruit_count_estimate || fruits.length }
+              ? { ...f, status: "listo", fruits, fruit_count_estimate: fruits.length }
               : f
           )
         );
@@ -110,7 +120,10 @@ export default function NuevaSesion() {
     const fotosDb = await base44.entities.Foto.filter({ session_id: sessionId });
     const allFruits = fotosDb.flatMap((f) => f.fruits || []);
     const fruitCount = allFruits.length;
-    const avgDiam = fruitCount ? allFruits.reduce((a, f) => a + f.diameter_mm, 0) / fruitCount : null;
+    // Si hay frutos medidos con referencia, el promedio usa solo esos (los estimados son poco fiables).
+    const medidos = allFruits.filter((f) => f.diameter_source === "referencia" && f.diameter_mm);
+    const base = medidos.length ? medidos : allFruits.filter((f) => f.diameter_mm);
+    const avgDiam = base.length ? base.reduce((a, f) => a + f.diameter_mm, 0) / base.length : null;
     const pct = (pred) => (fruitCount ? (allFruits.filter(pred).length / fruitCount) * 100 : 0);
     const redPct = pct((f) => f.color_category === "rojo" || f.color_category === "rojo_oscuro");
     const crackingPct = pct((f) => (f.defects || []).some((d) => d.type === "cracking"));
@@ -127,6 +140,7 @@ export default function NuevaSesion() {
       cracking_pct: crackingPct,
       sunburn_pct: sunburnPct,
       russet_pct: russetPct,
+      measured_count: medidos.length,
     });
     navigate(`/sesion/${sessionId}`);
   };
@@ -152,6 +166,24 @@ export default function NuevaSesion() {
 
         {bloqueId && (
           <div className="bg-white rounded-2xl border border-[#eee1dc] p-5 mt-5">
+            <label className="block text-xs font-medium text-[#9b7f82] mb-1.5">Objeto de referencia para el calibre</label>
+            <select
+              value={referencia}
+              disabled={!!sessionId}
+              onChange={(e) => setReferencia(e.target.value)}
+              className="w-full mb-2 border border-[#eee1dc] rounded-xl px-3 py-2.5 text-sm bg-white disabled:opacity-60"
+            >
+              {Object.entries(REFERENCIAS).map(([k, r]) => (
+                <option key={k} value={k}>{r.label}</option>
+              ))}
+            </select>
+            {referencia !== "ninguna" && (
+              <p className="text-xs text-[#9b7f82] mb-4">
+                {referencia === "tarjeta"
+                  ? "Apoyá la tarjeta plana contra la granada, de frente a la cámara y entera en la foto."
+                  : "Poné la pelota pegada a la granada, a la misma distancia de la cámara."}
+              </p>
+            )}
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-[#2a1a1d]">
                 Fotos · {fotosListas}/{fotos.length} · ≈{frutosTotal} frutos

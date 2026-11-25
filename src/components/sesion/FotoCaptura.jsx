@@ -35,6 +35,11 @@ export default function FotoCaptura({ foto }) {
           {foto.fruit_count_estimate} frutos
         </div>
       )}
+      {foto.status === "listo" && foto.fruits?.some((fr) => fr.diameter_source === "estimado") && (
+        <div className="absolute bottom-2.5 left-2.5 bg-amber-100/95 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+          sin referencia
+        </div>
+      )}
     </div>
   );
 }

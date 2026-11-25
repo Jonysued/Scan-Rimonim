@@ -81,8 +81,11 @@ export default function BloqueDetalle() {
   const idsSemana = new Set(sesionesSemana.map((s) => s.id));
   const fotosSemana = fotos.filter((f) => idsSemana.has(f.session_id));
   const frutosSemana = fotosSemana.flatMap((f) => f.fruits || []);
-  const avgDiamSemana = frutosSemana.length
-    ? frutosSemana.reduce((a, f) => a + f.diameter_mm, 0) / frutosSemana.length
+  const conDiam = frutosSemana.filter((f) => f.diameter_mm);
+  const medidosSemana = conDiam.filter((f) => f.diameter_source === "referencia");
+  const baseDiam = medidosSemana.length ? medidosSemana : conDiam;
+  const avgDiamSemana = baseDiam.length
+    ? baseDiam.reduce((a, f) => a + f.diameter_mm, 0) / baseDiam.length
     : sesionesSemana.reduce((a, s) => a + (s.avg_diameter_mm || 0), 0) / (sesionesSemana.length || 1);
 
   return (

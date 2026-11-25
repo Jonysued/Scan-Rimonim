@@ -48,6 +48,14 @@
     },
     "russet_pct": {
       "type": "number"
+    },
+    "reference_type": {
+      "type": "string",
+      "enum": ["tarjeta", "pelota", "ninguna"]
+    },
+    "measured_count": {
+      "type": "number",
+      "description": "Frutos con calibre medido contra referencia"
     }
   },
   "required": [
