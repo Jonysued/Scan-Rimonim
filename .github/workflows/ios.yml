@@ -57,7 +57,11 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -eo pipefail
-          test -n "$ASC_KEY_ID" && test -n "$ASC_ISSUER_ID" && test -n "$ASC_KEY_P8" && test -n "$TEAM_ID"
+          falta=0
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 TEAM_ID; do
+            if [ -z "${!v}" ]; then echo "::error::Falta el secret $v (APPLE_TEAM_ID para TEAM_ID)"; falta=1; fi
+          done
+          [ "$falta" = 0 ]
           KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
           printf '%s' "$ASC_KEY_P8" > "$KEY"
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
