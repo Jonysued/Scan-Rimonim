@@ -15,3 +15,4 @@ Para subir a TestFlight: commit con `[testflight]` en el mensaje (o "Run workflo
 
 Local: `brew install xcodegen && cd ios && xcodegen generate && open ScanRimonim.xcodeproj`.
 
+
