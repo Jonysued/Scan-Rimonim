@@ -14,3 +14,4 @@ Para subir a TestFlight: commit con `[testflight]` en el mensaje (o "Run workflo
 `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (contenido del .p8), `APPLE_TEAM_ID`.
 
 Local: `brew install xcodegen && cd ios && xcodegen generate && open ScanRimonim.xcodeproj`.
+
