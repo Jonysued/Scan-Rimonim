@@ -79,7 +79,8 @@ jobs:
             -clonedSourcePackagesDirPath .spm \
             -archivePath "$RUNNER_TEMP/ScanRimonim.xcarchive" \
             DEVELOPMENT_TEAM="$TEAM_ID" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
-            "${AUTH[@]}" archive | tail -20
+            CODE_SIGNING_ALLOWED=NO archive | tail -20
+          # El archivo se firma al exportar (firma de distribución gestionada en la nube)
           cat > "$RUNNER_TEMP/export.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
