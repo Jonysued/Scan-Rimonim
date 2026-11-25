@@ -63,7 +63,16 @@ jobs:
           done
           [ "$falta" = 0 ]
           KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
-          printf '%s' "$ASC_KEY_P8" > "$KEY"
+          # Normaliza la clave (saltos de línea de Windows, espacios, todo en una línea, etc.)
+          python3 - "$KEY" <<'PY'
+          import os, re, sys
+          raw = os.environ["ASC_KEY_P8"].replace("\r", "")
+          body = re.sub(r"-----(BEGIN|END)[A-Z ]*-----", "", raw)
+          body = re.sub(r"[^A-Za-z0-9+/=]", "", body)
+          print(f"Clave: encabezado={'BEGIN PRIVATE KEY' in raw}, largo base64={len(body)} (esperado ~200)")
+          lines = [body[i:i+64] for i in range(0, len(body), 64)]
+          open(sys.argv[1], "w").write("-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n")
+          PY
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
           xcodebuild -project ScanRimonim.xcodeproj -scheme ScanRimonim \
             -destination 'generic/platform=iOS' -configuration Release \
